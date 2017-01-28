@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.image.*?>
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane id="AnchorPane" fx:id="root_pane" prefHeight="400.0" prefWidth="600.0" styleClass="inicio" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="intelidomo.cliente.fxml.InicioController">
+  <stylesheets>
+    <URL value="@Estilo.css" />
+  </stylesheets>
+   <children>
+      <TabPane fx:id="tab_pane" layoutX="65.0" layoutY="50.0" prefHeight="276.0" prefWidth="452.0" side="BOTTOM" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="65.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="50.0">
+        <tabs>
+          <Tab text="Bienvenida">
+            <content>
+              <AnchorPane fx:id="inicio_pane" minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                     <children>
+                        <ImageView fx:id="bg_icon" fitHeight="350.0" fitWidth="550.0" pickOnBounds="true">
+                           <image>
+                              <Image url="@../img/pico.jpg" />
+                           </image>
+                        </ImageView>
+                        <Label fx:id="hora_lb" layoutX="34.0" layoutY="269.0" text="12:59" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0">
+                           <font>
+                              <Font size="70.0" />
+                           </font>
+                           <styleClass>
+                              <String fx:value="blanco" />
+                              <String fx:value="sombra" />
+                           </styleClass>
+                        </Label>
+                        <Label fx:id="user_lb" layoutX="186.0" layoutY="39.0" text="¡Bienvenido usuario!" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="10.0">
+                           <styleClass>
+                              <String fx:value="blanco" />
+                              <String fx:value="sombra" />
+                           </styleClass>
+                        </Label>
+                        <Label fx:id="areacount_lb" layoutX="223.0" layoutY="67.0" text="10 área(s)" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="30.0">
+                           <styleClass>
+                              <String fx:value="blanco" />
+                              <String fx:value="sombra" />
+                           </styleClass>
+                        </Label>
+                        <Label fx:id="dispositivocount_lb" layoutX="178.0" layoutY="119.0" text="10 dispositivo(s)" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="50.0">
+                           <styleClass>
+                              <String fx:value="blanco" />
+                              <String fx:value="sombra" />
+                           </styleClass>
+                        </Label>
+                     </children></AnchorPane>
+            </content>
+          </Tab>
+          <Tab text="Áreas">
+               <content>
+                  <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <ScrollPane fx:id="areas_scroll" hbarPolicy="NEVER" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="220.0" AnchorPane.topAnchor="0.0">
+                           <content>
+                              <FlowPane fx:id="areas_pane" hgap="5.0" prefHeight="200.0" prefWidth="200.0" vgap="5.0">
+                                 <padding>
+                                    <Insets bottom="5.0" left="5.0" right="5.0" top="5.0" />
+                                 </padding>
+                              </FlowPane>
+                           </content>
+                        </ScrollPane>
+                        <AnchorPane prefHeight="200.0" prefWidth="220.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                           <children>
+                              <ImageView fx:id="area_icon" fitHeight="80.0" fitWidth="80.0" pickOnBounds="true" preserveRatio="true" AnchorPane.leftAnchor="5.0" AnchorPane.topAnchor="5.0" />
+                              <Label fx:id="areaNom_lb" layoutX="96.0" layoutY="14.0" text="AREA X" AnchorPane.leftAnchor="95.0" AnchorPane.topAnchor="14.0">
+                                 <font>
+                                    <Font name="System Bold" size="16.0" />
+                                 </font>
+                              </Label>
+                              <Label fx:id="areaId_lb" text="ID 1" AnchorPane.leftAnchor="95.0" AnchorPane.topAnchor="40.0" />
+                              <Label fx:id="areaSize_lb" text="0 dispositivo(s)" AnchorPane.leftAnchor="95.0" AnchorPane.topAnchor="55.0" />
+                              <ScrollPane prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="90.0">
+                                 <content>
+                                    <FlowPane fx:id="disp_pane" minWidth="200.0" prefHeight="200.0" prefWidth="200.0" />
+                                 </content>
+                              </ScrollPane>
+                           </children>
+                        </AnchorPane>
+                     </children>
+                  </AnchorPane>
+               </content>
+          </Tab>
+            <Tab text="Dispositivos">
+               <content>
+                  <AnchorPane prefHeight="200.0" prefWidth="200.0">
+                     <children>
+                        <ScrollPane fx:id="alldisp_scroll" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="200.0" AnchorPane.topAnchor="0.0">
+                           <content>
+                              <FlowPane fx:id="alldisp_pane" prefHeight="321.0" prefWidth="289.0" />
+                           </content>
+                        </ScrollPane>
+                        <AnchorPane fx:id="extra_pane" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                           <children>
+                              <ImageView fx:id="dispositivo_icon" fitHeight="60.0" fitWidth="60.0" pickOnBounds="true" AnchorPane.leftAnchor="5.0" AnchorPane.topAnchor="5.0">
+                                 <image>
+                                    <Image url="@../img/area.png" />
+                                 </image>
+                              </ImageView>
+                              <Label fx:id="dispNom_lb" layoutX="55.0" layoutY="14.0" styleClass="titulo" text="Label" AnchorPane.leftAnchor="70.0" AnchorPane.topAnchor="10.0" />
+                              <Label fx:id="dispInfo_lb" layoutX="65.0" layoutY="30.0" text="Label" AnchorPane.leftAnchor="70.0" AnchorPane.topAnchor="30.0" />
+                              <Button layoutX="151.0" layoutY="10.0" mnemonicParsing="false" onAction="#ocultarExtra" text="x" AnchorPane.rightAnchor="2.0" AnchorPane.topAnchor="2.0" />
+                              <ScrollPane fx:id="extra_scroll" hbarPolicy="NEVER" layoutY="86.0" prefHeight="200.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="70.0" />
+                           </children>
+                        </AnchorPane>
+                     </children>
+                  </AnchorPane>
+               </content>
+            </Tab>
+        </tabs>
+      </TabPane>
+      <HBox prefHeight="50.0" styleClass="menubar" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <ImageView fitHeight="40.0" fitWidth="150.0" pickOnBounds="true" HBox.hgrow="NEVER">
+               <image>
+                  <Image url="@../img/logo_title.png" />
+               </image>
+            </ImageView>
+         </children>
+      </HBox>
+      <VBox alignment="BOTTOM_CENTER" layoutY="50.0" prefWidth="65.0" styleClass="sidebar" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="50.0">
+         <children>
+            <ImageView fx:id="home_icon" fitHeight="30.0" fitWidth="30.0" pickOnBounds="true" preserveRatio="true">
+               <VBox.margin>
+                  <Insets bottom="3.0" />
+               </VBox.margin>
+               <image>
+                  <Image url="@../img/logo_icon.png" />
+               </image>
+            </ImageView>
+         </children></VBox>
+   </children>
+</AnchorPane>

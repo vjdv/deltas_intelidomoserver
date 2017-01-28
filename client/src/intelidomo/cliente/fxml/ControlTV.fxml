@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.*?>
+<?import java.lang.*?>
+<?import java.net.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox fx:id="root" alignment="TOP_CENTER" prefHeight="401.0" prefWidth="200.0" spacing="10.0" styleClass="root" stylesheets="@controltv.css" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="intelidomo.cliente.fxml.ControlTVController">
+   <children>
+      <HBox alignment="TOP_RIGHT" prefHeight="35.0" prefWidth="200.0">
+         <children>
+            <Button fx:id="power" mnemonicParsing="false">
+               <graphic>
+                  <ImageView fitHeight="20.0" fitWidth="20.0" pickOnBounds="true">
+                     <image>
+                        <Image url="@../img/power.png" />
+                     </image>
+                  </ImageView>
+               </graphic>
+            </Button>
+         </children>
+      </HBox>
+      <HBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0" spacing="10.0" styleClass="redondo">
+         <children>
+            <VBox alignment="TOP_CENTER" prefHeight="90.0" prefWidth="60.0">
+               <children>
+                  <Button fx:id="kvu" mnemonicParsing="false" styleClass="subir" text="+" />
+                  <Label text="Volumen" />
+                  <Button fx:id="kvd" mnemonicParsing="false" styleClass="bajar" text="-" />
+               </children>
+            </VBox>
+            <Button fx:id="kok" mnemonicParsing="false" styleClass="chico" text="OK" />
+            <VBox alignment="TOP_CENTER" prefHeight="90.0" prefWidth="60.0">
+               <children>
+                  <Button fx:id="kcu" mnemonicParsing="false" styleClass="subir" text="+" />
+                  <Label text="Canales" />
+                  <Button fx:id="kcd" mnemonicParsing="false" styleClass="bajar" text="-" />
+               </children>
+            </VBox>
+         </children>
+      </HBox>
+      <FlowPane alignment="CENTER" hgap="5.0" maxHeight="151.0" maxWidth="109.0" vgap="5.0">
+         <children>
+            <Button fx:id="k1" mnemonicParsing="false" text="1" />
+            <Button fx:id="k2" mnemonicParsing="false" text="2" />
+            <Button fx:id="k3" mnemonicParsing="false" text="3" />
+            <Button fx:id="k4" mnemonicParsing="false" text="4" />
+            <Button fx:id="k5" mnemonicParsing="false" text="5" />
+            <Button fx:id="k6" mnemonicParsing="false" text="6" />
+            <Button fx:id="k7" mnemonicParsing="false" text="7" />
+            <Button fx:id="k8" mnemonicParsing="false" text="8" />
+            <Button fx:id="k9" mnemonicParsing="false" text="9" />
+            <Button fx:id="k0" mnemonicParsing="false" text="0" />
+         </children>
+      </FlowPane>
+      <BorderPane maxWidth="120.0" prefHeight="102.0">
+         <left>
+            <Button fx:id="kl" mnemonicParsing="false" styleClass="izquierda" text="￩" BorderPane.alignment="CENTER" />
+         </left>
+         <right>
+            <Button fx:id="kr" mnemonicParsing="false" styleClass="derecha" text="￫" BorderPane.alignment="CENTER" />
+         </right>
+         <center>
+            <Button fx:id="kenter" mnemonicParsing="false" styleClass="chico" text="ENTER" BorderPane.alignment="CENTER" />
+         </center>
+         <top>
+            <Button fx:id="kt" mnemonicParsing="false" styleClass="subir" text="￪" BorderPane.alignment="CENTER" />
+         </top>
+         <bottom>
+            <Button fx:id="kb" mnemonicParsing="false" styleClass="bajar" text="￬" BorderPane.alignment="CENTER" />
+         </bottom>
+      </BorderPane>
+      <FlowPane prefHeight="200.0" prefWidth="200.0">
+         <children>
+            <Button mnemonicParsing="false" styleClass="chico" text="INPUT" />
+            <Button mnemonicParsing="false" styleClass="chico" text="MUTE" />
+         </children>
+      </FlowPane>
+   </children>
+   <opaqueInsets>
+      <Insets />
+   </opaqueInsets>
+</VBox>

@@ -1,0 +1,41 @@
+/*
+ * Empty Stylesheet file.
+ */
+
+.root{
+    -fx-background-color: #dddddd;
+}
+.button{
+    -fx-background-color: #5cbcf6;
+    -fx-border-color: #49a7df;
+    -fx-border-radius: 4px;
+    -fx-border-width: 2;
+    -fx-font-size: 14;
+    -fx-text-fill: #FFFFFF;
+    -fx-font-weight: bold;
+}
+.button.subir{
+    -fx-background-radius: 15 15 4 4;
+    -fx-border-radius: 15 15 4 4;
+}
+.button.bajar{
+    -fx-background-radius: 4 4 15 15;
+    -fx-border-radius: 4 4 15 15;
+}
+.button.izquierda{
+    -fx-background-radius: 15 4 4 15;
+    -fx-border-radius: 15 4 4 15;
+}
+.button.derecha{
+    -fx-background-radius: 4 15 15 4;
+    -fx-border-radius: 4 15 15 4;
+}
+.button.chico{
+    -fx-font-size: 10px;
+}
+.button:hover{
+    -fx-background-color: #7DC9F8;
+}
+.button:pressed{
+    -fx-background-color: #4A96C5;
+}

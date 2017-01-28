@@ -1,0 +1,92 @@
+/* 
+  Created on : 7/07/2015, 05:02:07 PM
+  Author     : Jassiel
+*/
+.ventana{
+  -fx-background-color: rgba(0,0,0,0.8);
+  -fx-background-radius: 10.0;
+  -fx-border-color: #000000;
+  -fx-border-radius: 10.0;
+  -fx-border-width: 2px;
+}
+.ventana .label{
+  -fx-fill: #FFFFFF;
+  -fx-text-fill: #FFFFFF;
+}
+.ventana.login .label{
+  -fx-font-size: 16px;
+}
+.ventana.login .label.chico{
+  -fx-font-size: 13px;
+}
+.ventana.login .button {
+  -fx-background-color: 
+    #090a0c,
+    linear-gradient(#38424b 0%, #1f2429 20%, #191d22 100%),
+    linear-gradient(#20262b, #191d22),
+    radial-gradient(center 50% 0%, radius 100%, rgba(114,131,148,0.9), rgba(255,255,255,0));
+  -fx-background-radius: 5,4,3,5;
+  -fx-background-insets: 0,1,2,0;
+  -fx-text-fill: white;
+  -fx-effect: dropshadow( three-pass-box , rgba(0,0,0,0.6) , 5, 0.0 , 0 , 1 );
+  -fx-font-family: "Arial";
+  -fx-text-fill: linear-gradient(white, #d0d0d0);
+  -fx-font-size: 12px;
+  -fx-padding: 10 20 10 20;
+}
+.ventana.login .button Text {
+  -fx-effect: dropshadow( one-pass-box , rgba(0,0,0,0.9) , 1, 0.0 , 0 , 1 );
+}
+.ventana.login .button:hover {
+  -fx-background-color: 
+    #090a0c,
+    linear-gradient(#38424b 0%, #1f2429 20%, #191d22 100%),
+    linear-gradient(#38424b 0%, #20262b 90%, #191d22 100%),
+    radial-gradient(center 50% 0%, radius 100%, rgba(114,131,148,0.9), rgba(255,255,255,0));
+}
+.ventana.login .button:pressed {
+  -fx-background-color: 
+    #090a0c,
+    linear-gradient(#38424b 0%, #1f2429 20%, #191d22 100%),
+    linear-gradient(#191d22, #20262b),
+    radial-gradient(center 50% 0%, radius 100%, rgba(114,131,148,0.9), rgba(255,255,255,0));
+}
+.ventana.login .button.ok{
+  -fx-background-radius: 5;
+  -fx-padding: 5;
+}
+.inicio .menubar{
+  -fx-background-color: linear-gradient(#98a8bd 0%, #8195af 25%, #6d86a4 100%);
+  -fx-padding: 4 10 5 10;
+}
+.inicio .sidebar{
+  -fx-background-color: #454545;
+}
+.inicio .area_box{
+  -fx-background-color: rgba(0,0,0,0.04);
+  -fx-background-radius: 7;
+}
+.inicio .area_box:hover{
+  -fx-background-color: rgba(0,0,0,0.15);
+}
+.inicio .area_box .label{
+  -fx-font-style: italic;
+}
+.inicio .tab-pane .tab-header-area .tab-header-background {
+  -fx-background-color: linear-gradient(#1e9984 0%, #28d3b7 49%, #1fc6ab 51%, #7ae2d1 100%);
+}
+.inicio .titulo{
+  -fx-font-weight: bold;
+}
+.inicio .disp_pane:hover{
+  -fx-background-color: #b7c6da;
+}
+.inicio .overlay{
+  -fx-background-color: rgba(0,0,0,0.2);
+}
+.label.blanco{
+  -fx-text-fill: #FFFFFF;
+}
+.label.sombra{
+  -fx-effect: dropshadow( gaussian , rgba(0,0,0,0.5) , 0,0,0,1 );
+}
