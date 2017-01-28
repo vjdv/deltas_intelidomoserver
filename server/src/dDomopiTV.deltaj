@@ -1,0 +1,89 @@
+delta dDomopiTV {
+	adds{
+		package modelos.domopi;
+		import modelos.Controlador;
+		import modelos.Casa;
+		import java.io.*;
+		import java.net.*;
+		import java.util.*;
+		import java.util.logging.*;
+		public class DomopiTV extends Controlador{
+			private Casa casa = Casa.getInstancia();
+			
+			public DomopiTV(){
+				setTipo("DomopiTV Controller");
+			}
+			public void constructor(){
+				TeleImp tv = new TeleImp(this);
+				casa.registrarTV(tv);
+			}
+			@Override
+			public void conectar(){
+				throw new UnsupportedOperationException();
+			}
+			public String consumirServicio(String uri){
+				uri = "http://"+getIP()+":"+getPuerto()+uri;
+				try{
+					URL url = new URL(uri);
+					HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+					connection.setRequestMethod("GET");
+					InputStream is = connection.getInputStream();
+					Scanner s = new Scanner(is);
+					s.useDelimiter("\\A");
+					String r = s.hasNext() ? s.next() : "";
+					s.close();
+    				return r;
+    			}catch(Exception ex){
+    				Logger.getLogger("DomoLog").log(Level.INFO, "Error conexión DomopiTV "+getIP(),ex);
+    				return null;
+    			}
+			}
+		}
+	}
+	adds{
+		package modelos.domopi;
+		import modelos.Tele;
+		import modelos.commands.PowerTV;
+		import modelos.commands.ChannelTV;
+		public class TeleImp extends Tele{
+			private final DomopiTV padre;
+			public TeleImp(DomopiTV drpi){
+				setControlador(drpi);
+				padre = drpi;
+				addFuncion(new PowerTV(this));
+				addFuncion(new ChannelTV(this));
+			}
+			@Override
+			public void comando(String cmd){
+				padre.consumirServicio("/key/"+cmd);
+			}
+			@Override
+			public void cambiarCanal(String chn){
+				padre.consumirServicio("/channel/"+chn);
+			}
+			@Override
+			public void onoff(){
+				padre.consumirServicio("/key/KEY_POWER");
+			}
+			@Override
+			public void triggerEstado(String edo) {
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+	modifies db.Gestor{
+		adds import modelos.domopi.DomopiTV;
+		modifies despacharControlador(String tipo,ResultSet rs){
+			if(tipo.equals("DomopiTV")){
+				DomopiTV tvdisp = new DomopiTV();
+				tvdisp.setId(rs.getInt("id_disp"));
+				tvdisp.setArea(rs.getInt("id_area"));
+				tvdisp.setIP(rs.getString("ip"));
+				tvdisp.setPuerto(rs.getString("puerto"));
+				tvdisp.constructor();
+				return tvdisp;
+			}
+			return original(tipo,rs);
+		}
+	}
+}

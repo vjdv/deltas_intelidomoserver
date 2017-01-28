@@ -1,0 +1,25 @@
+delta dRodasTemperatura {
+	adds{
+		package modelos.rodas;
+		import modelos.SensorTemperatura;
+		public class ArduinoRodasTemp extends SensorTemperatura{
+			public ArduinoRodasTemp(ArduinoRodas ar){
+				setControlador(ar);
+			}
+		}
+	}
+	modifies modelos.rodas.ArduinoRodas{
+		adds ArduinoRodasTemp st = new ArduinoRodasTemp(this);
+		modifies constructor(){
+			Casa.getInstancia().registrarSensorTemperatura(st);
+			new Thread(new KeepUpdated("GET /Temp$", 10000)).start();
+			original();
+		}
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("$ST")) {
+				st.setEstado(val);
+			}
+			original(key,val);
+		}
+	}
+}

@@ -1,0 +1,25 @@
+delta dNodepiTemperatura {
+	adds{
+		package modelos.nodepi;
+		import modelos.SensorTemperatura;
+		public class TemperaturaImp extends SensorTemperatura{
+			public TemperaturaImp(NodepiSensors ctr){
+				setControlador(ctr);
+			}
+		}
+	}
+	modifies modelos.nodepi.NodepiSensors{
+		adds TemperaturaImp temp;
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("temp")) {
+				if(temp==null){
+					temp = new TemperaturaImp(this);
+					dispositivos.add(temp);
+					casa.registrarSensorTemperatura(temp);
+				}
+				temp.setEstado(val);
+			}
+			original(key,val);
+		}
+	}
+}

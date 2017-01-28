@@ -1,0 +1,727 @@
+delta dServer {
+	modifies aplicacion.Inicio{
+		adds import server.ServidorTCP;
+		adds import server.ServidorHTTP;
+		modifies constructor(){
+			original();
+			new Thread(new ServidorTCP()).start();
+			new Thread(new ServidorHTTP()).start();
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.Mensaje;
+		public interface DispatcherI{
+			void registrarCliente(Cliente c);
+			void removerCliente(Cliente c);
+			Mensaje despacha(Mensaje m) throws Exception;
+		}
+	}
+	adds{
+		package server;
+		public interface Cliente{
+			String getIP();
+			String getIPv4();
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.*;
+		import modelos.obs.Observador;
+		import modelos.obs.Observado;
+		import modelos.Dispositivo;
+		import modelos.Casa;
+		import java.util.*;
+//		import java.util.logging.*;
+		public class DispatcherTCP implements DispatcherI,Observador{
+			private Casa casa = Casa.getInstancia();
+			private static DispatcherTCP self;
+			private DispatcherTCP(){
+				casa.registrarObs(this);
+			}
+			@Override
+			public void actualizarObs(Observado obj){
+				if(!(obj instanceof Casa)) return;
+				final List<Dispositivo> lista = casa.getListaCambios();
+//				System.out.println("Actualizará Información "+lista.size());
+				Mensaje m = RespuestaFactory.eventoEstados(lista);
+				for(ClienteTCP c : clientes_list) c.envia(m);
+			}
+			public Mensaje despacha(Mensaje m){
+				//TODO
+				if(m.tipo!=Mensaje.COMANDO) return null;
+				if(m.accion.equals(Mensaje.EJECUTAR_FUNCIONES)){
+					for(FuncionX f : m.ejecutar.lista_funciones){
+						Map<String,String> args = new HashMap<String,String>();
+						for(EstadoX arg : f.lista_argumentos) args.put(arg.nombre, arg.valor);
+						casa.ejecutarFuncion(f.id, args);
+					}
+				}
+				return null;
+			}
+			private List<ClienteTCP> clientes_list = new ArrayList<ClienteTCP>();
+			@Override public void registrarCliente(Cliente c){clientes_list.add((ClienteTCP)c);}
+			@Override public void removerCliente(Cliente c){clientes_list.remove(c);}
+			public static DispatcherTCP getInstancia(){
+				if(self==null) self = new DispatcherTCP();
+				return self;
+			}
+		}
+	}
+	adds{
+		package server;
+		import aplicacion.Config;
+		import java.util.logging.*;
+		import java.io.IOException;
+		import java.net.*;
+		public class ServidorTCP implements Runnable{
+			ServerSocket conexion;
+			public void run(){
+				try {
+					conexion = new ServerSocket(Config.PUERTO_TCP_SERVER);
+					Logger.getLogger("DomoLog").log(Level.FINE,"Servidor: Servicio Iniciado");
+					while(true){
+						ClienteTCP cliente = new ClienteTCP(conexion.accept());
+						Logger.getLogger("DomoLog").log(Level.INFO,"Servidor: conexion aceptada en "+cliente.getIP());
+						new Thread(cliente).start();
+					}
+				}
+				catch(IOException ex) {
+					Logger.getLogger("DomoLog").log(Level.WARNING,"ServidorComandos: No fue posible inciar ServerSocket en puerto"+Config.PUERTO_TCP_SERVER, ex);
+				}
+			}
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.*;
+		import javax.xml.transform.stream.StreamSource;
+		import javax.xml.bind.*;
+		import java.util.logging.*;
+		import java.io.*;
+		import java.net.*;
+		class ClienteTCP implements Cliente,Runnable{
+			private final String endMessage = "quit";
+			private DispatcherI dispatcher;
+			private BufferedReader in;
+			private PrintWriter out;
+			private Socket socket;
+			ClienteTCP(Socket sckt){
+				socket = sckt;
+				dispatcher = DispatcherTCP.getInstancia();
+				dispatcher.registrarCliente(this);
+			}
+			public void run(){
+				try{
+					InputStream is = socket.getInputStream();
+					in = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+					ClienteStream cs = new ClienteStream(in);
+					new Thread(cs).start();
+					out = new PrintWriter(socket.getOutputStream(), true);
+				}catch(IOException ex){
+					Logger.getLogger("DomoLog").log(Level.SEVERE,"Servidor: No fue posible crear flujos IO de cliente "+getIP(), ex);
+				}
+			}
+			public String getIP(){
+				return socket.getRemoteSocketAddress().toString();
+			}
+			public String getIPv4(){
+				InetSocketAddress isa = (InetSocketAddress) socket.getRemoteSocketAddress();
+				return isa.getAddress().toString();
+			}
+			public void despacharCadena(String str){
+				if(str.equals("")) return;
+				System.out.println("Mensaje recibido:\n"+str);
+				try{
+					JAXBContext contexto = JAXBContext.newInstance(Mensaje.class);
+					Unmarshaller u = contexto.createUnmarshaller();
+					Mensaje m = (Mensaje) u.unmarshal(new StreamSource(new StringReader(str)));
+					Mensaje respuesta = dispatcher.despacha(m);
+					if(respuesta!=null) enviarRespuesta(respuesta);
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"No fue posible interpretar mensaje >>>\n"+str.trim()+"\n<<< de cliente "+getIP(), ex);
+				}
+			}
+			private synchronized void enviarRespuesta(Mensaje r){
+				try{
+					JAXBContext contexto = JAXBContext.newInstance(Mensaje.class);
+      				Marshaller m = contexto.createMarshaller();
+      				m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+      				m.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+      				m.marshal(r, out);
+      				out.println();
+				}catch(JAXBException ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor: error al enviar respuesta a cliente "+getIP());
+				}
+			}
+			public void envia(Mensaje msg){
+				try{
+					JAXBContext contexto = JAXBContext.newInstance(Mensaje.class);
+      				Marshaller m = contexto.createMarshaller();
+      				m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+      				m.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+      				m.marshal(msg, out);
+      				out.println();
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor: error al enviar respuesta a cliente "+getIP(), ex);
+				}
+			}
+			public void cerrar(){
+				try{
+					dispatcher.removerCliente(this);
+					in.close();
+					out.close();
+					socket.close();
+					Logger.getLogger("DomoLog").log(Level.FINE,"Servidor: conexión cerrada adecuadamente de cliente" + getIP());
+				}catch(IOException ex){
+					Logger.getLogger("DomoLog").log(Level.SEVERE,"Servidor: error al cerrar conexión adecuadamente de cliente "+getIP(), ex);
+				}
+			}
+			class ClienteStream implements Runnable{
+				BufferedReader stream;
+				public ClienteStream(BufferedReader br){
+					stream = br;
+				}
+				@Override
+				public void run() {
+					try {
+						StringBuilder mensaje = new StringBuilder();
+						String fromServer;
+						while((fromServer = stream.readLine()) != null) {
+							if(fromServer.equals(endMessage)){
+								cerrar();
+								return;
+							}else if(fromServer.equals("")) {
+								despacharCadena(mensaje.toString());
+								mensaje = new StringBuilder();
+							}else {
+								mensaje.append(fromServer);
+								mensaje.append("\n");
+							}
+						}
+					}catch(IOException ex) {
+						String[] params = {getIP(), ex.getMessage()};
+						Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor: Error IO cliente {0} debido a {1}",params);
+					}catch(NullPointerException ex){
+						Logger.getLogger("DomoLog").log(Level.INFO,"Servidor: Conexión cerrada por cliente "+getIP(), ex);
+					}finally{
+						cerrar();
+					}
+				}
+			}
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.*;
+		import modelos.Area;
+		import modelos.Casa;
+		import modelos.Dispositivo;
+		import modelos.Usuario;
+		import java.io.StringWriter;
+		import java.util.*;
+		import java.util.logging.Level;
+		import java.util.logging.Logger;
+		import javax.xml.bind.JAXBContext;
+		import javax.xml.bind.Marshaller;
+		public class RespuestaFactory{
+			static Casa casa = Casa.getInstancia();
+			public static Mensaje errorLogin(String detalle){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.FALLO;
+				r.accion = Mensaje.ACCESO;
+				r.detalle = detalle;
+				return r;
+			}
+			public static Mensaje loginCorrecto(Usuario u){
+				Mensaje r = new Mensaje();
+				r.usuario = new UsuarioX();
+				r.usuario.clave = u.getId();
+				r.usuario.nombre = u.getNombre();
+				r.usuario.tipo = u.getTipo();
+				r.tipo = Mensaje.EXITO;
+				r.accion = Mensaje.ACCESO;
+				return r;
+			}
+			public static Mensaje infoDomotica() {
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.EXITO;
+				r.accion = Mensaje.INFORMACION_DOMOTICA;
+				for(Area area : casa.getAreasArray()) {
+					r.lista_areas.add(Traductor.areaToX(area));
+					//sacarElementos(r, area);
+				}
+				for(Dispositivo d : casa.getDispositivosArray()){
+					r.lista_dispositivos.add(Traductor.dispositivoToX(d));
+				}
+				return r;
+			}
+			public static Mensaje eventoEstados(List<Dispositivo> lista){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.EVENTO;
+				r.accion = Mensaje.ACTUALIZAR_ESTADOS;
+				for(Dispositivo sd : lista){
+					DispositivoX d = Traductor.dispositivoToX(sd);
+					r.lista_dispositivos.add(d);
+				}
+				return r;
+			}
+			public static Mensaje mensajeBase(){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.EXITO;
+				r.accion = "base";
+				r.lista_servicios.add(new ServicioX("login","/login.post"));
+				r.lista_servicios.add(new ServicioX("allinfo","/info.get"));
+				return r;
+			}
+			public static Mensaje mensaje404(){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.UNKNOWN;
+				r.accion = "404";
+				r.detalle = "action or url described no exists";
+				return r;
+			}
+			public static Mensaje mensaje401(){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.ILLEGAL;
+				r.accion = "401";
+				r.detalle = "valid token is required";
+				return r;
+			}
+			public static Mensaje loginFailed(){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.ILLEGAL;
+				r.accion = "LOGIN";
+				r.detalle = "login has failed";
+				return r;
+			}
+			public static Mensaje loginSuccess(Session s){
+				Mensaje r = new Mensaje();
+				r.tipo = Mensaje.EXITO;
+				r.accion = "LOGIN";
+				r.usuario = new UsuarioX();
+				r.usuario.clave = s.usuario.getId();
+				r.usuario.nombre = s.usuario.getNombre();
+				r.usuario.tipo = s.usuario.getTipo();
+				r.usuario.token = s.id;
+				r.usuario.token_expire = s.expire;
+				return r;
+			}
+			public static String mensaje2string(Mensaje msg){
+				try {
+					StringWriter sw = new StringWriter();
+					JAXBContext contexto = JAXBContext.newInstance(Mensaje.class);
+					Marshaller m = contexto.createMarshaller();
+					m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+					m.setProperty(Marshaller.JAXB_ENCODING, "UTF-8");
+					m.marshal(msg, sw);
+					return sw.toString();
+				}
+				catch(Exception ex) {
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Error al parsear mensaje", ex);
+					return null;
+				}
+			}
+			//TODO más metodos
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.*;
+		import modelos.Area;
+		import modelos.Dispositivo;
+		import modelos.commands.FuncionI;
+		import modelos.commands.Variable;
+		public class Traductor{
+			public static AreaX areaToX(Area a){
+				AreaX x = new AreaX();
+				x.id = a.getId();
+				x.grupo = a.getGrupo();
+				x.descripcion = a.getNombre();
+				x.tipo = a.getTipo();
+				return x;
+			}
+			public static DispositivoX dispositivoToX(Dispositivo d){
+				DispositivoX x = new DispositivoX();
+				x.id = d.getId();
+				x.area = d.getArea();
+				x.estado.valor = d.getEstado();
+				x.estado.tipo = d.getTipoEstado();
+				x.estado.solo_lectura = d.isEstadoSoloLectura();
+				x.categoria = d.getCategoria();
+				x.subcategoria = d.getSubcategoria();
+				for(FuncionI f : d.getFunciones()) x.lista_funciones.add(funcionToX(f));
+				return x;
+			}
+			public static FuncionX funcionToX(FuncionI f){
+				FuncionX x = new FuncionX();
+				x.id = f.getId();
+				x.nombre = f.getNombre();
+				x.descripcion = f.getDescripcion();
+				for(Variable arg : f.getArgumentosArray()) {
+					EstadoX a = new EstadoX();
+					a.nombre = arg.getNombre();
+					a.tipo = arg.getTipo();
+					x.lista_argumentos.add(a);
+				}
+				return x;
+			}
+		}
+	}
+	adds{
+		package server;
+		import db.Gestor;
+		import modelos.Usuario;
+		import java.math.BigInteger;
+		import java.security.MessageDigest;
+		import java.security.NoSuchAlgorithmException;
+		import java.util.*;
+		import java.util.logging.*;
+		public class SessionPool{
+//			static private SessionPool self;
+			static private Gestor g = Gestor.getSingleton();
+			private static Map<String,Session> pool = new HashMap<String,Session>();
+//			private SessionPool(){}
+			public static Usuario credencialValida(String user, String pass){
+				if(user==null || pass==null) return null;
+				else if(user.isEmpty() || pass.isEmpty()) return null;
+				return g.obtenerUsuarioLogeado(user,pass);
+			}
+			public static boolean tokenValido(String token, Cliente c){
+				Session s = pool.get(token);
+				if(s==null) return false;
+				if(!s.ip.equals(c.getIPv4())) return false;
+				return true;//TODO
+			}
+			public static Session getSession(Usuario u, Cliente c){
+				Session s = new Session();
+				s.usuario = u;
+				s.ip = c.getIPv4();
+				s.expire = (System.currentTimeMillis()/1000l)+86400;
+				try{
+					MessageDigest m = MessageDigest.getInstance("MD5");
+					m.reset();
+					m.update((u.getId()+s.ip+s.expire).getBytes());
+					byte[] digest = m.digest();
+					BigInteger bigInt = new BigInteger(1,digest);
+					String hashkey = bigInt.toString(16);
+					pool.put(hashkey,s);
+					s.id = hashkey;
+					return s;
+				}catch(NoSuchAlgorithmException ex){
+					Logger.getLogger("DomoLog").log(Level.SEVERE,"Servidor HTTP: No fue posible crear token_hash", ex);
+					return null;
+				}
+			}
+//			public static SessionPool getInstance(){
+//				if(self==null) self = new SessionPool();
+//				return self;
+//			}
+		}
+	}
+	adds{
+		package server;
+		import intelidomo.idcp.Mensaje;
+		import modelos.Usuario;
+		import modelos.Casa;
+		import java.util.logging.*;
+		import java.net.URLDecoder;
+		import java.io.UnsupportedEncodingException;
+		public class DispatcherHTTP{
+			private Casa casa = Casa.getInstancia();
+			private static DispatcherHTTP self;
+			public HttpResponse despacha(HttpRequest request,Cliente cliente){
+				HttpResponse response;
+				if(request.uriEquals("GET /")){
+					response = new HttpResponse(200);
+					response.appendContent("<h1>Intelidomo</h1><p>Home automation.</p>");
+				}else if(request.uriEquals("POST /login.do")) {
+					String u = request.datos_post.get("user");
+					String p = request.datos_post.get("password");
+					Usuario user = SessionPool.credencialValida(u, p);
+					response = new HttpResponse(200);
+					response.setContentType("text/plain");
+					if(user == null){
+						Mensaje m = RespuestaFactory.loginFailed();
+						String content = RespuestaFactory.mensaje2string(m);
+						response.appendContent(content);
+					}else {
+						Session s = SessionPool.getSession(user, cliente);
+						Mensaje m = RespuestaFactory.loginSuccess(s);
+						String content = RespuestaFactory.mensaje2string(m);
+						response.appendContent(content);
+					}
+				}else if(request.uriEquals("GET /info.do")){
+					String token = request.datos_get.get("token");
+					boolean token_valido =(token == null) ? false : SessionPool.tokenValido(token,cliente);
+					if(token_valido){
+						Mensaje m = RespuestaFactory.infoDomotica();
+						String content = RespuestaFactory.mensaje2string(m);
+						response = new HttpResponse(200);
+						response.setContentType("text/plain");
+						response.appendContent(content);
+					}else{
+						Mensaje m = RespuestaFactory.mensaje401();
+						String content = RespuestaFactory.mensaje2string(m);
+						response = new HttpResponse(401);
+						response.setContentType("text/plain");
+						response.appendContent(content);
+					}
+				}else{
+					response = new HttpResponse(404);
+					response.appendContent("<h1>Not Found</h1><p>Document was not found on this server.</p>");
+				}
+				return response;
+			}
+			private String decode(String str){
+				try {
+					return URLDecoder.decode(str, "UTF-8");
+				} catch (UnsupportedEncodingException ex) {
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor: error decodificando", ex);
+					return null;
+				}
+			}
+			public static DispatcherHTTP getInstancia(){
+				if(self==null) self = new DispatcherHTTP();
+				return self;
+			}
+		}
+	}
+	adds{
+		package server;
+		import aplicacion.Config;
+		import java.util.logging.*;
+		import java.io.IOException;
+		import java.net.*;
+		public class ServidorHTTP implements Runnable{
+			ServerSocket conexion;
+			public void run(){
+				try {
+					conexion = new ServerSocket(Config.PUERTO_HTTP_SERVER);
+					Logger.getLogger("DomoLog").log(Level.FINE,"Servidor HTTP: Servicio Iniciado");
+					while(true) new ClienteHTTP(conexion.accept());
+				}
+				catch(IOException ex) {
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor HTTP: No fue posible inciar ServerSocket en puerto "+Config.PUERTO_TCP_SERVER, ex);
+				}
+			}
+		}
+	}
+	adds{
+		package server;
+		import java.util.logging.*;
+		import java.io.*;
+		import java.net.*;
+		class ClienteHTTP implements Cliente{
+			private DispatcherHTTP dispatcher;
+			private BufferedReader in;
+			private PrintWriter out;
+			private Socket socket;
+			ClienteHTTP(Socket sckt){
+				socket = sckt;
+				dispatcher = DispatcherHTTP.getInstancia();
+				try{
+					InputStream is = socket.getInputStream();
+					in = new BufferedReader(new InputStreamReader(is, "UTF-8"));
+					out = new PrintWriter(socket.getOutputStream(), true);
+					new Thread(new InputReader()).start();
+					Logger.getLogger("DomoLog").log(Level.INFO,"Cliente aceptado {0}",getIP());
+				}catch(IOException ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Servidor: No fue posible aceptar cliente {0}",getIP());
+				}
+			}
+			public String getIP(){
+				return socket.getRemoteSocketAddress().toString();
+			}
+			public String getIPv4(){
+				InetSocketAddress isa = (InetSocketAddress) socket.getRemoteSocketAddress();
+				return isa.getAddress().toString();
+			}
+			public void envia(HttpResponse response){
+				out.print(response.getResponse());
+				out.flush();
+				cerrar();
+			}
+			public void cerrar(){
+				try{
+					in.close();
+					out.close();
+					socket.close();
+					Logger.getLogger("DomoLog").log(Level.FINE,"Servidor: conexión cerrada adecuadamente de cliente" + getIP());
+				}catch(IOException ex){
+					Logger.getLogger("DomoLog").log(Level.SEVERE,"Servidor: error al cerrar conexión adecuadamente de cliente "+getIP(), ex);
+				}
+			}
+			class InputReader implements Runnable {
+				@Override
+				public void run() {
+					try {
+						String incoming;
+						HttpRequest request = new HttpRequest();
+						while((incoming = in.readLine()) != null) {
+							System.out.println(incoming);
+							if(incoming.isEmpty()) break;
+							request.addHeader(incoming);
+						}
+						while(request.requiresContent()) {
+							int val = in.read();
+							if(val == - 1) {
+								request.parseContent();
+								break;
+							}
+							request.addContent(( char ) val);
+						}
+						HttpResponse r = dispatcher.despacha(request,ClienteHTTP.this);
+						envia(r);
+					}
+					catch(HttpRequest.InvalidRequestException ex) {
+						HttpResponse response = new HttpResponse(400);
+						response.appendContent("<h1>Bad Request</h1><p>Wrong headers or protocol.</p>");
+						envia(response);
+					}
+					catch(IOException ex) {
+						String params [] = {getIP(), ex.getMessage()};
+						Logger.getLogger("Domopi").log(Level.WARNING,"Error IO en cliente {0} por {1}", params);
+					}
+					finally {
+						cerrar();
+					}
+				}
+			}
+		}
+	}
+	adds{
+		package server;
+		import java.util.HashMap;
+		import java.util.Map;
+		public class HttpRequest {
+			public static int GET = 1, POST = 2;
+			public String method, url, content = "";
+			public int contentLength = 0;
+			public Map<String,String> datos_get = new HashMap<String,String>();
+			public Map<String,String> datos_post = new HashMap<String,String>();
+			private boolean firstLineReceived = false;
+			public void addHeader(String str) throws InvalidRequestException{
+				if(firstLineReceived){
+					if(str.startsWith("Content-Length: ")) contentLength = Integer.parseInt(str.split(" ")[1]);
+				}else if(str.startsWith("GET /") || str.startsWith("POST /")){
+					method = str.startsWith("GET") ? "GET" : "POST";
+					String parts[] = str.split(" ")[1].split("\\?");
+					url = parts[0];
+					if(parts.length==2){
+						String params [] = parts[1].split("&");
+						for(String param : params) {
+							String [] key_value = param.split("=");
+							datos_get.put(key_value[0], key_value[1]);
+						}
+					}
+					firstLineReceived = true;
+				}else throw new InvalidRequestException();
+			}
+			public boolean requiresContent() throws InvalidRequestException{
+				if(method==null) throw new InvalidRequestException();
+				return method.equals("POST") && content.length()<contentLength;
+			}
+			public void addContent(String str) throws InvalidRequestException{
+				content += str;
+				if(content.length()>=contentLength) parseContent();
+			}
+			public void addContent(char c) throws InvalidRequestException{
+				content += c;
+				if(content.length()>=contentLength) parseContent();
+			}
+			public boolean uriEquals(String str){
+				return str.equals(method+" "+url);
+			}
+			public void parseContent(){
+				String params [] = content.split("&");
+				for(String param : params) {
+					String key_value[] = param.split("=");
+					datos_post.put(key_value[0], key_value[1]);
+				}
+			}
+			public static class InvalidRequestException extends Exception{
+				private static final long serialVersionUID = 1L;
+				public InvalidRequestException(){}
+				public InvalidRequestException(String msg){super(msg);}
+			}
+		}
+	}
+	adds{
+		package server;
+		public class HttpResponse {
+			public static final int OK = 200, BAD_REQUEST = 400, FORBIDDEN = 403,NOT_FOUND = 404;
+			private StringBuilder content = new StringBuilder();
+			private String contentType = "text/html";
+			private int code = OK;
+
+			public HttpResponse() {}
+			public HttpResponse(int code) {
+				this.code = code;
+			}
+			public void setCode(int code) {
+				this.code = code;
+			}
+			public void setContentType(String ct) {
+				contentType = ct;
+			}
+			public void appendContent(String str) {
+				content.append(str);
+			}
+			private String getCodeString(int code) {
+				switch(code) {
+					case 200 : return "200 OK";
+					case 201 : return "201 Created";
+					case 202 : return "202 Accepted";
+					case 400 : return "400 Bad Request";
+					case 401 : return "401 Unauthorized";
+					case 402 : return "402 Payment Required";
+					case 403 : return "403 Forbidden";
+					case 404 : return "404 Not Found";
+					case 411 : return "411 Length Required";
+					case 500 : return "500 Internal Server Error";
+					default : return "999 ???";
+				}
+			}
+			public String getResponse() {
+				StringBuilder sb = new StringBuilder();
+				sb.append("HTTP/1.1 " + getCodeString(code) + "\n");
+				sb.append("Content-Type: " + contentType + "; charset=utf-8" + "\n");
+				sb.append("X-Powered-By: Intelidomo" + "\n");
+				sb.append("Server: intelidomo" + "\n");
+				sb.append("Content-Length: " + length(content) + "\n");
+				sb.append("\n");
+				sb.append(content);
+				return sb.toString();
+			}
+			private int length(CharSequence sequence) {
+    			int count = 0;
+    			for(int i=0, len=sequence.length(); i<len; i++){
+      				char ch = sequence.charAt(i);
+      				if (ch <= 0x7F) {
+        				count++;
+      				} else if (ch <= 0x7FF) {
+        				count += 2;
+      				} else if (Character.isHighSurrogate(ch)) {
+        				count += 4;
+        				++i;
+      				} else {
+        				count += 3;
+      				}
+    			}
+    			return count;
+  			}
+		}
+	}
+	adds{
+		package server;
+		import modelos.Usuario;
+		public class Session{
+			public String id;
+			public Usuario usuario;
+			public String token;
+			public String ip;
+			public long expire;
+		}
+	}
+}

@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spls xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../bin/spls.xsd">
+	<spl name="intelidomo">
+		<features>
+			<feature name ="base" />
+			<feature name ="postgresql" />
+			<feature name ="mysql" />
+			<feature name ="voz" />
+			<feature name ="luces" />
+			<feature name ="presencia" />
+			<feature name ="temperatura" />
+			<feature name ="humedad" />
+			<feature name ="tv" />
+			<feature name ="cortina" />
+			<feature name ="alarma" />
+			<feature name ="fuego" />
+			<feature name ="gases" />
+			<feature name ="rodas" />
+			<feature name ="domopi" />
+			<feature name ="nodemcu" />
+			<feature name ="milight" />
+		</features>
+		<configurations>
+			<configuration formula="mysql XOR postgresql
+			" />
+			<configuration formula="fuego AND alarma
+			" />
+			<configuration formula="gases AND alarma
+			" />
+		</configurations>
+		<deltas>
+			<partition>
+				<modul delta="dBase" when="base
+				" />
+				<modul delta="dDatabase" when="base
+				" />
+				<modul delta="dModelos" when="base
+				" />
+				<modul delta="dRules" when="base
+				" />
+				<modul delta="dServer" when="base
+				" />
+			</partition>
+			<partition>
+				<modul delta="dPgsql" when="postgresql
+				" />
+			</partition>
+			<partition>
+				<modul delta="dLuces" when="luces
+				" />
+			</partition>
+			<partition>
+				<modul delta="dPresencia" when="presencia
+				" />
+			</partition>
+			<partition>
+				<modul delta="dTemperatura" when="temperatura
+				" />
+			</partition>
+			<partition>
+				<modul delta="dHumedad" when="humedad
+				" />
+			</partition>
+			<partition>
+				<modul delta="dCortina" when="cortina
+				" />
+			</partition>
+			<partition>
+				<modul delta="dTV" when="tv
+				" />
+			</partition>
+			<partition>
+				<modul delta="dAlarma" when="alarma
+				" />
+			</partition>
+			<partition>
+				<modul delta="dLuzRGB" when="milight
+				" />
+			</partition>
+			<partition>
+				<modul delta="dRodas" when="rodas
+				" />
+			</partition>
+			<partition>
+				<modul delta="dRodasLuces" when="rodas AND luces
+				" />
+			</partition>
+			<partition>
+				<modul delta="dRodasPresencia" when="rodas AND presencia
+				" />
+			</partition>
+			<partition>
+				<modul delta="dRodasTemperatura" when="rodas AND temperatura
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopi" when="domopi
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopiLuces" when="domopi AND luces
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopiPresencia" when="domopi AND presencia
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopiTemperatura" when="domopi AND temperatura
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopiHumedad" when="domopi AND humedad
+				" />
+			</partition>
+			<partition>
+				<modul delta="dDomopiTV" when="domopi AND tv
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepi" when="nodemcu
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiLucesDim" when="nodemcu AND luces
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiTemperatura" when="nodemcu AND temperatura
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiHumedad" when="nodemcu AND humedad
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiCortina" when="nodemcu AND cortina
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiFuego" when="nodemcu AND fuego
+				" />
+			</partition>
+			<partition>
+				<modul delta="dNodepiGas" when="nodemcu AND gases
+				" />
+			</partition>
+			<partition>
+				<modul delta="dMilight" when="milight
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVoz" when="voz
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVozLuces" when="voz AND luces
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVozHumd" when="voz AND humedad
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVozTemperatura" when="voz AND temperatura
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVozCortina" when="voz AND cortina
+				" />
+			</partition>
+			<partition>
+				<modul delta="dVozTV" when="voz AND tv
+				" />
+			</partition>
+		</deltas>
+	</spl>
+</spls>

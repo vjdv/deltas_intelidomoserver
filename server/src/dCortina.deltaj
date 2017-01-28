@@ -1,0 +1,78 @@
+delta dCortina {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		import modelos.commands.AbrirCortina;
+		import modelos.commands.CerrarCortina;
+		import modelos.commands.SetPosicionCortina;
+		public abstract class Cortina extends Dispositivo{
+			public Cortina(){
+				super(true);
+				setCategoria(Constantes.CORTINA);
+				setTipoEstado(Constantes.ENTERO);
+				setEstadoSoloLectura(false);
+				addFuncion(new AbrirCortina(this));
+				addFuncion(new CerrarCortina(this));
+				addFuncion(new SetPosicionCortina(this));
+			}
+			public abstract void setPosicion(String pos);
+			public abstract void abrir();
+			public abstract void cerrar();
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Cortina;
+		public class AbrirCortina extends Funcion{
+			public Cortina cortina;
+			public AbrirCortina(Cortina c){
+				cortina = c;
+				setNombre("open");
+			}
+			public void ejecutar() throws Exception{
+				cortina.abrir();
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Cortina;
+		public class CerrarCortina extends Funcion{
+			public Cortina cortina;
+			public CerrarCortina(Cortina c){
+				cortina = c;
+				setNombre("close");
+			}
+			public void ejecutar() throws Exception{
+				cortina.cerrar();
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Cortina;
+		import intelidomo.estatico.Constantes;
+		public class SetPosicionCortina extends Funcion{
+			public Cortina cortina;
+			public SetPosicionCortina(Cortina c){
+				cortina = c;
+				setNombre("setPosition");
+				Variable v1 = new Variable(Constantes.ENTERO,"position");
+				agregarArgumento(v1);
+			}
+			public void ejecutar() throws Exception{
+				cortina.setPosicion(getValorDeArgumento("position"));
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds public Map<Integer,Cortina> mapaCortinas = new HashMap<Integer,Cortina>();
+		adds private static int cortina_count = 1;
+		adds public void registrarCortina(Cortina c){
+			c.setId(cortina_count);
+			mapaCortinas.put(cortina_count,c);
+			registrarDispositivo(c);
+			cortina_count++;
+		}
+	}
+}

@@ -1,0 +1,36 @@
+delta dNodepiGas {
+	adds{
+		package modelos.nodepi;
+		import intelidomo.estatico.Constantes;
+		import modelos.Alarma;
+		public class GasImp extends Alarma{
+			public GasImp(NodepiSensors ctr){
+				setControlador(ctr);
+				setSubcategoria(Constantes.GAS);
+			}
+		}
+	}
+	modifies modelos.nodepi.NodepiSensors{
+		adds GasImp gas1, gas2;
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("gas_ana")) {
+				if(gas1==null){
+					gas1 = new GasImp(this);
+					dispositivos.add(gas1);
+					casa.registrarAlarma(gas1);
+				}
+				int x = Integer.parseInt(val);
+				gas1.hay(x>50);
+			}
+			if(key.equals("gas_dig")) {
+				if(gas2==null){
+					gas2 = new GasImp(this);
+					dispositivos.add(gas2);
+					casa.registrarAlarma(gas2);
+				}
+				gas2.hay(val.equals("1"));
+			}
+			original(key,val);
+		}
+	}
+}

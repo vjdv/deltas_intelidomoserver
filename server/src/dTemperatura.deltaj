@@ -1,0 +1,37 @@
+delta dTemperatura {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		public abstract class SensorTemperatura extends Dispositivo{
+			public SensorTemperatura(){
+				super(false);
+				setCategoria(Constantes.SENSOR_TEMPERATURA);
+				setTipoEstado(Constantes.DECIMAL);
+				setEstadoSoloLectura(true);
+			}
+			public float getTemperatura(){
+				return Float.parseFloat(getEstado());
+			}
+			@Override
+			public void triggerEstado(String edo) {
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds public Map<Integer,SensorTemperatura> mapaTemperatura = new HashMap<Integer,SensorTemperatura>();
+		adds private static int st_count = 1;
+		adds public void registrarSensorTemperatura(SensorTemperatura st){
+			st.setId(st_count);
+			mapaTemperatura.put(st_count,st);
+			registrarDispositivo(st);
+			st_count++;
+		}
+	}
+	modifies modelos.Area{
+		adds public List<SensorTemperatura> listaTemperatura = new ArrayList<SensorTemperatura>();
+		adds public void agregarSensorTemperatura(SensorTemperatura st){
+			listaTemperatura.add(st);
+		}
+	}
+}

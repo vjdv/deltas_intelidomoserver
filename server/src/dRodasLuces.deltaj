@@ -1,0 +1,44 @@
+delta dRodasLuces {
+	adds{
+		package modelos.rodas;
+		import intelidomo.estatico.Constantes;
+		import modelos.Luz;
+		import java.util.logging.*;
+		public class ArduinoRodasLuz extends Luz{
+			private final ArduinoRodas padre;
+			public ArduinoRodasLuz(ArduinoRodas ar){
+				setControlador(ar);
+				padre = ar;
+			}
+			@Override
+			public void triggerEstado(String edo){
+				if(edo.equals(Constantes.ON)) encender();
+				else if(edo.equals(Constantes.OFF)) apagar();
+				else Logger.getLogger("DomoLog").log(Level.INFO,"Estado "+edo+" para luz no válido en {0}", padre.getIP());
+			}
+			@Override
+			public void encender(){
+				padre.enviarComando("GET /Onlight$");
+			}
+			@Override
+			public void apagar(){
+				padre.enviarComando("GET /Offlight$");
+			}
+		}
+	}
+	modifies modelos.rodas.ArduinoRodas{
+		adds ArduinoRodasLuz luz = new ArduinoRodasLuz(this);
+		modifies constructor(){
+			Casa.getInstancia().registrarLuz(luz);
+			new Thread(new KeepUpdated("GET /Light$", 5000)).start();
+			original();
+		}
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("$L")) {
+				String x = val.equals("1") ? "1" : "0";
+				luz.setEstado(x);
+			}
+			original(key,val);
+		}
+	}
+}

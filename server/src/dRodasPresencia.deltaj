@@ -1,0 +1,26 @@
+delta dRodasPresencia {
+	adds{
+		package modelos.rodas;
+		import modelos.SensorPresencia;
+		public class ArduinoRodasPir extends SensorPresencia{
+			public ArduinoRodasPir(ArduinoRodas ar){
+				setControlador(ar);
+			}
+		}
+	}
+	modifies modelos.rodas.ArduinoRodas{
+		adds ArduinoRodasPir pir = new ArduinoRodasPir(this);
+		modifies constructor(){
+			Casa.getInstancia().registrarSensorPresencia(pir);
+			new Thread(new KeepUpdated("GET /Pre$", 2000)).start();
+			original();
+		}
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("$P")) {
+				String x = val.equals("1") ? "1" : "0";
+				pir.setEstado(x);
+			}
+			original(key,val);
+		}
+	}
+}

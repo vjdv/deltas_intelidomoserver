@@ -1,0 +1,31 @@
+delta dDomopiTemperatura {
+	adds{
+		package modelos.domopi;
+		import modelos.SensorTemperatura;
+		public class TemperaturaImp extends SensorTemperatura{
+			private final char cid;
+			public TemperaturaImp(Domopi drpi, char id){
+				setControlador(drpi);
+				cid = id;
+			}
+			public char getIdChar(){ return cid; }
+		}
+	}
+	modifies modelos.domopi.Domopi{
+		adds Map<Character,TemperaturaImp> mapa_st = new HashMap<Character,TemperaturaImp>();
+		modifies entenderPedazo(String key,String val){
+			if(key.startsWith("TEMP")) {
+				Character id = key.length()>4 ? key.charAt(4) : '0';
+				TemperaturaImp st = mapa_st.get(id);
+				if(st==null){
+					st = new TemperaturaImp(this,id);
+					dispositivos.add(st);
+					mapa_st.put(id,st);
+					casa.registrarSensorTemperatura(st);
+				}
+				st.setEstado(val);
+			}
+			original(key,val);
+		}
+	}
+}

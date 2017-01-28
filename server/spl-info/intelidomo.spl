@@ -1,0 +1,70 @@
+SPL intelidomo {
+
+	Features = {
+		base, postgresql, mysql, voz,
+		luces, presencia, temperatura, humedad, tv, cortina, alarma, fuego, gases,
+		rodas, domopi, nodemcu, milight
+	}
+
+	Deltas = {dBase, dDatabase, dModelos, dRules, dServer, dPgsql,
+		dLuces, dPresencia, dTemperatura, dHumedad, dTV, dCortina, dAlarma, dLuzRGB,
+		dRodas, dRodasLuces, dRodasPresencia, dRodasTemperatura,
+		dDomopi, dDomopiLuces, dDomopiPresencia, dDomopiTemperatura, dDomopiHumedad, dDomopiTV,
+		dNodepi, dNodepiLucesDim, dNodepiTemperatura, dNodepiHumedad, dNodepiCortina, dNodepiFuego, dNodepiGas,
+		dVoz, dVozLuces, dVozTemperatura, dVozHumd, dVozTV, dVozCortina,
+		dMilight
+	}
+
+	Constraints {
+		// Put boolean expression representation of the feature model here.
+		mysql ^ postgresql;
+		fuego & alarma;
+		gases & alarma;
+	}
+
+	Partitions {
+		{dBase,dDatabase,dModelos,dRules,dServer} when (base);
+		{dPgsql} when (postgresql);
+		{dLuces} when (luces);
+		{dPresencia} when (presencia);
+		{dTemperatura} when (temperatura);
+		{dHumedad} when (humedad);
+		{dCortina} when (cortina);
+		{dTV} when (tv);
+		{dAlarma} when (alarma);
+		{dLuzRGB} when (milight);
+		{dRodas} when (rodas);
+		{dRodasLuces} when (rodas & luces);
+		{dRodasPresencia} when (rodas & presencia);
+		{dRodasTemperatura} when (rodas & temperatura);
+		{dDomopi} when (domopi);
+		{dDomopiLuces} when (domopi & luces);
+		{dDomopiPresencia} when (domopi & presencia);
+		{dDomopiTemperatura} when (domopi & temperatura);
+		{dDomopiHumedad} when (domopi & humedad);
+		{dDomopiTV} when (domopi & tv);
+		{dNodepi} when (nodemcu);
+		{dNodepiLucesDim} when (nodemcu & luces);
+		{dNodepiTemperatura} when (nodemcu & temperatura);
+		{dNodepiHumedad} when (nodemcu & humedad);
+		{dNodepiCortina} when (nodemcu & cortina);
+		{dNodepiFuego} when (nodemcu & fuego);
+		{dNodepiGas} when (nodemcu & gases);
+		{dMilight} when (milight);
+		{dVoz} when (voz);
+		{dVozLuces} when (voz & luces);
+		{dVozHumd} when (voz & humedad);
+		{dVozTemperatura} when (voz & temperatura);
+		{dVozCortina} when (voz & cortina);
+		{dVozTV} when (voz & tv);
+	}
+
+	Products {
+		Rodas = {base,postgresql,luces,presencia,temperatura,rodas};
+		Domopi = {base,postgresql,luces,presencia,temperatura,humedad,tv,domopi};
+		Nodepi = {base,postgresql,luces,temperatura,humedad,cortina,alarma,fuego,gases,nodemcu};
+		Completo = {base,postgresql,luces,presencia,temperatura,humedad,tv,cortina,alarma,fuego,gases,rodas,domopi,nodemcu};
+		Plus = {base,postgresql,luces,presencia,temperatura,humedad,tv,cortina,alarma,fuego,gases,rodas,domopi,nodemcu,milight,voz};
+		Personal = {base,postgresql,luces,presencia,temperatura,humedad,tv,cortina,alarma,fuego,gases,domopi,nodemcu,voz};
+	}
+}

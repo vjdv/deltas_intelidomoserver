@@ -1,0 +1,119 @@
+delta dMilight {
+	adds{
+		package modelos.milight;
+		import modelos.Controlador;
+		import modelos.Casa;
+		import java.net.DatagramPacket;
+		import java.net.DatagramSocket;
+		import java.net.InetAddress;
+		import java.util.logging.Level;
+		import java.util.logging.Logger;
+		public class MiLightClient extends Controlador{
+			Casa casa = Casa.getInstancia();
+			LuzImp luz;
+			public MiLightClient(){
+				setTipo("MiLight Cliente APP");
+				luz = new LuzImp(this);
+				casa.registrarLuz(luz);
+			}
+			@Override
+			public void conectar(){}
+			public void enviarComando(byte sendData[]){
+				try{
+					final DatagramSocket clientSocket = new DatagramSocket();
+					InetAddress IPAddress = InetAddress.getByName(getIP());
+					DatagramPacket sendPacket = new DatagramPacket(sendData, sendData.length, IPAddress, 8899);
+					clientSocket.send(sendPacket);
+					esperar(100);
+					clientSocket.close();
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"No se logró enviar comando",ex);
+				}
+			}
+			private void esperar(long time){
+				try {Thread.sleep(time);}
+				catch(InterruptedException ex) {}
+			}
+		}
+	}
+	adds{
+		package modelos.milight;
+		import modelos.LuzRGB;
+		import intelidomo.estatico.Constantes;
+		import java.awt.Color;
+		public class LuzImp extends LuzRGB{
+			private final MiLightClient padre;
+			public LuzImp(MiLightClient padre){
+				setControlador(padre);
+				setEstado(Constantes.DISPONIBLE);
+				this.padre = padre;
+			}
+			@Override
+			public void encender(){
+				padre.enviarComando(new byte[]{0x22,0x00,0x55});
+			}
+			@Override
+			public void apagar(){
+				padre.enviarComando(new byte[]{0x21,0x00,0x55});
+			}
+			@Override
+			public void setColor(String c){
+				String cps[] = c.split(",");
+				int r = Integer.parseInt(cps[0]);
+				int g = Integer.parseInt(cps[1]);
+				int b = Integer.parseInt(cps[2]);
+				setColor(r,g,b);
+			}
+			@Override
+			public void setColor(int r, int g, int b){
+				float[] hsv = new float[3];
+				Color.RGBtoHSB(r, g, b, hsv);
+				float h = hsv[0];
+				float s = hsv[1];
+				float v = hsv[2];
+				int hue_int = Math.round(h*255);
+				hue_int = 255-hue_int;
+				String hex_str = Integer.toHexString(hue_int);
+				int hex_int = Integer.parseInt(hex_str,16);
+				byte hue = (byte) hex_int;
+				hue -= (byte) 80;
+				if(s==0f && v==100){
+					encender();
+					padre.enviarComando(new byte [] {0x28, 0x00, 0x55});
+				}else if(s==0 && v==0){
+					apagar();
+				}else{
+					encender();
+					padre.enviarComando(new byte [] {0x20, hue, 0x55});
+				}
+			}
+			@Override
+			public void triggerEstado(String edo){
+				switch(edo){
+					case Constantes.ON:
+						encender();
+						break;
+					case Constantes.OFF:
+						apagar();
+						break;
+					default:
+						setColor(edo);
+						break;
+				}
+			}
+		}
+	}
+	modifies db.Gestor{
+		adds import modelos.milight.MiLightClient;
+		modifies despacharControlador(String tipo,ResultSet rs){
+			if(tipo.equals("MiLight")){
+				MiLightClient ml = new MiLightClient();
+				ml.setId(rs.getInt("id_disp"));
+				ml.setArea(rs.getInt("id_area"));
+				ml.setIP(rs.getString("ip"));
+				return ml;
+			}
+			return original(tipo,rs);
+		}
+	}
+}

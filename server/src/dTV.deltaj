@@ -1,0 +1,78 @@
+delta dTV {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		import modelos.commands.PresionarTeclaTV;
+		public abstract class Tele extends Dispositivo{
+			public Tele(){
+				super(false);
+				setCategoria(Constantes.TV);
+				setTipoEstado(Constantes.CADENA);
+				setEstadoSoloLectura(true);
+				addFuncion(new PresionarTeclaTV(this));
+			}
+			public abstract void comando(String cmd);
+			public abstract void cambiarCanal(String chn);
+			public abstract void onoff();
+		}
+	}
+	adds{
+		package modelos.commands;
+		import intelidomo.estatico.Constantes;
+		import modelos.Tele;
+		public class PresionarTeclaTV extends Funcion{
+			public Tele tv;
+			public PresionarTeclaTV(Tele t){
+				tv = t;
+				setNombre("presionarTecla");
+				setDescripcion("Como si presionaras una tecla");
+				Variable v1 = new Variable(Constantes.CADENA,"tecla");
+				agregarArgumento(v1);
+			}
+			public void ejecutar() throws Exception{
+				tv.comando(getValorDeArgumento("tecla"));
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Tele;
+		public class PowerTV extends Funcion{
+			public Tele tv;
+			public PowerTV(Tele t){
+				tv = t;
+				setNombre("power");
+			}
+			public void ejecutar() throws Exception{
+				tv.onoff();
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import intelidomo.estatico.Constantes;
+		import modelos.Tele;
+		public class ChannelTV extends Funcion{
+			public Tele tv;
+			public ChannelTV(Tele t){
+				tv = t;
+				setNombre("setChannel");
+				Variable v1 = new Variable(Constantes.CADENA,"canal");
+				agregarArgumento(v1);
+			}
+			public void ejecutar() throws Exception{
+				tv.cambiarCanal(getValorDeArgumento("canal"));
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds public Map<Integer,Tele> mapaTeles = new HashMap<Integer,Tele>();
+		adds private static int tv_count = 1;
+		adds public void registrarTV(Tele tv){
+			tv.setId(tv_count);
+			mapaTeles.put(tv_count,tv);
+			registrarDispositivo(tv);
+			tv_count++;
+		}
+	}
+}

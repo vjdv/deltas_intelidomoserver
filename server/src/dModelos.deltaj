@@ -1,0 +1,515 @@
+delta dModelos {
+	adds{
+		package modelos;
+		import db.Gestor;
+		import modelos.commands.Funcion;
+		import modelos.commands.FuncionI;
+//		import intelidomo.estatico.Constantes;
+		import modelos.obs.Observado;
+		import modelos.obs.Observador;
+		import java.util.*;
+		import java.util.Map.Entry;
+		import java.util.logging.*;
+		public class Casa implements Observador,Observado{
+			private static Casa singleton;
+			private Gestor g = Gestor.getSingleton();
+			private Map<Integer,Controlador> controladores_map = new HashMap<Integer,Controlador>();
+			private Map<Integer,Area> areas_map = new HashMap<Integer,Area>();
+			private List<Dispositivo> dispositivos_ls = new ArrayList<Dispositivo>();
+			private Map<Integer, Funcion> funciones_map = new HashMap<Integer, Funcion>();
+			private List<Observador> observadores_ls = new ArrayList<Observador>();
+			private List<Dispositivo> lista_a_notificar;
+			public void constructor(){
+				//Getting areas
+				Area[] areas = g.getListaAreas();
+				for(Area a : areas) areas_map.put(a.getId(),a);
+				Controlador[] controladores = g.getListaControladores();
+				for(Controlador c : controladores){
+					controladores_map.put(c.getId(),c);
+					despacharControlador(c);
+				}
+			}
+			public Area getArea(int id_area){
+				return areas_map.get(id_area);
+			}
+			@Override
+			public void registrarObs(Observador obs){
+				observadores_ls.add(obs);
+			}
+			@Override
+			public void removerObs(Observador obs){
+				observadores_ls.remove(obs);
+			}
+			@Override
+			public void notificarObs(){
+				for(Observador obs : observadores_ls){
+					obs.actualizarObs(this);
+				}
+				lista_a_notificar.clear();
+			}
+			@Override
+			public void actualizarObs(Observado origen){
+				Controlador obj = (Controlador) origen;
+				lista_a_notificar = new ArrayList<Dispositivo>(obj.getCambios());
+				obj.resetCambios();
+				notificarObs();
+			}
+			public List<Dispositivo> getListaCambios(){
+				return new ArrayList<Dispositivo>(lista_a_notificar);
+			}
+			public void despacharControlador(Controlador c){
+				c.registrarObs(this);
+				return;
+			}
+			public void registrarDispositivo(Dispositivo disp){
+				dispositivos_ls.add(disp);
+				for(FuncionI fx : disp.getFunciones()){
+					Funcion f = (Funcion) fx;
+					funciones_map.put(f.getId(), f);
+				}
+			}
+			public boolean ejecutarFuncion(int id_func, Map<String,String> args){
+				Funcion f = funciones_map.get(id_func);
+				if(f==null) return false;
+				for(Entry<String,String> entry : args.entrySet()){
+					f.setValorDeArgumento(entry.getKey(),entry.getValue());
+				}
+				try{
+					f.ejecutar();
+					return true;
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING, "No se pudo ejecutar la funcion #"+f.toString());
+					return false;
+				}
+			}
+			public Area[] getAreasArray() {
+				return areas_map.values().toArray(new Area[areas_map.size()]);
+			}
+			public Dispositivo[] getDispositivosArray() {
+				return dispositivos_ls.toArray(new Dispositivo[dispositivos_ls.size()]);
+			}
+			public static Casa getInstancia(){
+				if(singleton==null) singleton = new Casa();
+				return singleton;
+			}
+			
+		}
+	}
+	adds{
+		package modelos;
+		import db.Persistente;
+		import java.util.*;
+		public class Area implements Persistente{
+			private int id;
+			private String tipo,nombre,grupo;
+			@Override
+			public String sqlConsultar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlInsertar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlActualizar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlEliminar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public void setId(Object id) {this.id = Integer.parseInt(id.toString());}
+			@Override
+			public Integer getId() {return id;}
+			public void setId(int id) {this.id = id;}
+			public String getTipo() {return tipo;}
+			public void setTipo(String tipo) {this.tipo = tipo;}
+			public String getNombre() {return nombre;}
+			public void setNombre(String nombre) {this.nombre = nombre;}
+			public String getGrupo() {return grupo;}
+			public void setGrupo(String grupo) {this.grupo = grupo;}
+		}
+	}
+	adds{
+		package modelos.commands;
+		public interface FuncionI{
+			int getId();
+			String getDescripcion();
+			String getNombre();
+			void ejecutar() throws Exception;
+			Variable[] getArgumentosArray();
+			void setValorDeArgumento(String k,String v);
+			String getValorDeArgumento(String k);
+		}
+	}
+	adds{
+		package modelos.commands;
+		import java.util.*;
+		public abstract class Funcion implements FuncionI{
+			private static int count = 0;
+			private int id;
+			public Funcion(){
+				id = count;
+				count++;
+			}
+			@Override
+			public int getId(){
+				return id;
+			}
+			//Descripción
+			private String descripcion;
+			@Override
+			public String getDescripcion(){return descripcion;}
+			public void setDescripcion(String d){descripcion = d;}
+			//Nombre
+			private String nombre;
+			@Override
+			public String getNombre() {return nombre;}
+			public void setNombre(String n){nombre = n;}
+			//Argumentos
+			private Map<String,Variable> mapa_argumentos = new HashMap<String,Variable>();
+			public void agregarArgumento(Variable v){
+				mapa_argumentos.put(v.getNombre(), v);
+			}
+			@Override
+			public Variable[] getArgumentosArray(){
+				return mapa_argumentos.values().toArray(new Variable[mapa_argumentos.size()]);
+			}
+			@Override
+			public void setValorDeArgumento(String nombre, String valor){
+				Variable v = mapa_argumentos.get(nombre);
+				if(v==null) return;
+				v.setValor(valor);
+			}
+			@Override
+			public String getValorDeArgumento(String nombre){
+				Variable v = mapa_argumentos.get(nombre);
+				if(v==null) return null;
+				return v.getValor();
+			}
+			@Override
+			public String toString(){
+				return "#"+id+" "+nombre;
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import java.util.ArrayList;
+		import java.util.List;
+		public class Variable {
+			public Variable(){}
+			public Variable(String tipo, String nombre) {
+				this();
+				this.tipo = tipo;
+				this.nombre = nombre;
+			}
+			public Variable(String tipo, String nombre, String valor) {
+				this(tipo, nombre);
+				this.valor = valor;
+			}
+			private String valor, valor_minimo, valor_maximo;
+			public void setValor(String x){valor = x;}
+			public String getValor(){return valor;}
+			public void setValorMinimo(String x){valor_minimo = x;}
+			public String getValorMinimo(){return valor_minimo;}
+			public void setValorMaximo(String x){valor_maximo = x;}
+			public String getValorMaximo(){return valor_maximo;}
+			private String tipo, nombre, prefijo, sufijo;
+			public void setTipo(String x){tipo = x;}
+			public String getTipo(){return tipo;}
+			public void setNombre(String x){nombre = x;}
+			public String getNombre(){return nombre;}
+			public void setPrefijo(String x){prefijo = x;}
+			public String getPrefijo(){return prefijo;}
+			public void setSufijo(String x){sufijo = x;}
+			public String getSufijo(){return sufijo;}
+			private Boolean solo_lectura;
+			public void setSoloLectura(boolean x){solo_lectura = x;}
+			public Boolean isSoloLectura(){return solo_lectura;}
+			public List<Variable> valores_permitidos = new ArrayList<Variable>();
+		}
+	}
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		import modelos.obs.Observador;
+		import modelos.obs.Observado;
+		import java.util.*;
+		public abstract class Controlador implements Observado{
+			private Casa casa = Casa.getInstancia();
+			//ID
+			private int id;
+			public int getId() {return id;}
+			public void setId(int id) {this.id = id;}
+			//IP
+			private String ip;
+			public String getIP() {return ip;}
+			public void setIP(String ip) {this.ip = ip;}
+			//Puerto
+			private String puerto;
+			public String getPuerto() {return puerto;}
+			public void setPuerto(String puerto) {this.puerto = puerto;}
+			public int getPuertoInt() {return Integer.parseInt(puerto);}
+			//Tipo
+			private String tipo;
+			public String getTipo() {return tipo;}
+			public void setTipo(String tipo) {this.tipo = tipo;}
+			//Area
+			private int area;
+			public void setArea(int a) {area = a;}
+			public int getArea() {return area;}
+			//Conectar
+			public void conectar(){};
+			//Lista dispositivos
+			private List<Dispositivo> lista_dispositivos = new ArrayList<Dispositivo>();
+			public void registrarDispositivo(Dispositivo d){
+				// TODO Auto-generated method stub
+				lista_dispositivos.add(d);
+				d.setArea(area);
+			}
+			public void marcarIndisponibles(){
+				for(Dispositivo d : lista_dispositivos) d.setEstado(Constantes.INDISPONIBLE);
+				if(hayCambios()) notificarObs();
+			}
+			public void marcarIndisponibles(Dispositivo ds[]){
+				for(Dispositivo d : ds) d.setEstado(Constantes.INDISPONIBLE);
+				if(hayCambios()) notificarObs();
+			}
+			//Cambios
+			private List<Dispositivo> lista_cambios = new ArrayList<Dispositivo>();
+			public void agregarCambio(Dispositivo d){
+				lista_cambios.add(d);
+			}
+			public void resetCambios(){
+				lista_cambios.clear();
+			}
+			public List<Dispositivo> getCambios(){
+				return lista_cambios;
+			}
+			public boolean hayCambios(){
+				return lista_cambios.size() > 0;
+			}
+			//Observer
+			private List<Observador> lista_obs = new ArrayList<Observador>();
+			public void registrarObs(Observador o){lista_obs.add(o);}
+			public void removerObs(Observador o){lista_obs.remove(o);}
+			public Observador[] getObservadores(){return lista_obs.toArray(new Observador[lista_obs.size()]);}
+			public void notificarObs(){for(Observador obs : getObservadores()) obs.actualizarObs(this);}
+		}
+	}
+	adds{
+		package modelos;
+		import modelos.commands.FuncionI;
+		public interface DispositivoI{
+			void setId(int id);
+			int getId();
+			void setArea(int id);
+			int getArea();
+			void setCategoria(String cat);
+			String getCategoria();
+			void setSubcategoria(String cat);
+			String getSubcategoria();
+			void setControlador(Controlador c);
+			Controlador getControlador();
+			void triggerEstado(String edo);
+			void setEstado(String edo);
+			String getEstado();
+			void setTipoEstado(String tipo);
+			String getTipoEstado();
+			void setEstadoSoloLectura(boolean b);
+			boolean isEstadoSoloLectura();
+			FuncionI[] getFunciones();
+			FuncionI getFuncion(String n);
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.DispositivoI;
+		import intelidomo.estatico.Constantes;
+		public class CambiarEstado extends Funcion{
+			public DispositivoI dispositivo;
+			public CambiarEstado(DispositivoI d){
+				this();
+				dispositivo = d;
+			}
+			public CambiarEstado(){
+				setNombre("setEstado");
+				setDescripcion("Cambiar estado del dispositivo");
+				Variable v1 = new Variable(Constantes.ON_OFF,"estado");
+				agregarArgumento(v1);
+			}
+			public void ejecutar() throws Exception{
+				dispositivo.triggerEstado(getValorDeArgumento("estado"));
+			}
+		}
+	}
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		import modelos.commands.FuncionI;
+		import modelos.commands.CambiarEstado;
+		import java.util.*;
+		public abstract class Dispositivo implements DispositivoI{
+			public Dispositivo(){
+				this(true);
+			}
+			public Dispositivo(boolean cambiaEstado){
+				if(cambiaEstado==true) addFuncion(new CambiarEstado(this));
+			}
+			//Funciones
+			private Map<String,FuncionI> funciones = new HashMap<String,FuncionI>();
+			public void addFuncion(FuncionI f){funciones.put(f.getNombre(),f);}
+			public FuncionI[] getFunciones(){return funciones.values().toArray(new FuncionI[funciones.size()]);}
+			public FuncionI getFuncion(String nombre){return funciones.get(nombre);}
+			//Estado
+			private String estado = Constantes.INDISPONIBLE;
+			@Override
+			public void setEstado(String edo){
+				if(!equalsEstado(edo)) padre.agregarCambio(this);
+				estado = edo;
+			}
+			public String getEstado(){return estado;}
+			public boolean equalsEstado(String x){ return getEstado().equals(x);}
+			//Atributos de estado
+			private String estado_tipo = Constantes.CADENA;
+			public void setTipoEstado(String tipo){estado_tipo = tipo;}
+			public String getTipoEstado(){return estado_tipo;}
+			private boolean estado_sl = true;
+			public void setEstadoSoloLectura(boolean b){estado_sl = b;}
+			public boolean isEstadoSoloLectura(){return estado_sl;}
+			//ID
+			private int id;
+			@Override public void setId(int id){this.id = id;}
+			@Override public int getId(){return id;}
+			//Area
+			private int area;
+			@Override public void setArea(int id_area){area = id_area;}
+			@Override public int getArea(){return area;}
+			//Categoria
+			private String cat;
+			@Override public void setCategoria(String c){cat = c;}
+			@Override public String getCategoria(){return cat;}
+			//Subcategoria
+			private String scat;
+			@Override public void setSubcategoria(String c){scat = c;}
+			@Override public String getSubcategoria(){return scat;}
+			//Controlador
+			private Controlador padre;
+			@Override public void setControlador(Controlador c){
+				padre = c;
+				padre.registrarDispositivo(this);
+			}
+			@Override public Controlador getControlador(){return padre;}
+			//Como retardante en cambio y aviso de estado
+			private long last_time;
+			private boolean continua;
+			private long delayTime = 15000;
+			public void setEstadoDelay(long x){delayTime = x;}
+			public void hay(boolean hayx){
+				if(hayx && (equalsEstado(Constantes.INDISPONIBLE) || equalsEstado(Constantes.NO))){
+					last_time = System.currentTimeMillis();
+					continua = false;
+					setEstado(Constantes.YES);
+					new Thread(new Tiempo()).start();
+				}else if(!hayx && estado==Constantes.INDISPONIBLE){
+					setEstado(Constantes.NO);
+				}else if(hayx){
+					System.out.println("Recontando");
+					last_time = System.currentTimeMillis();
+				}else{
+					continua = true;
+				}
+			}
+			class Tiempo implements Runnable{
+				@Override
+				public void run(){
+					while(System.currentTimeMillis()-last_time<delayTime || continua==false){
+						try { Thread.sleep(100); }
+						catch (InterruptedException e) { e.printStackTrace(); }
+					}
+					setEstado(Constantes.NO);
+					padre.notificarObs();
+				}
+			}
+		}
+	}
+	adds{
+		package modelos;
+		import db.Persistente;
+		public class Usuario implements Persistente {
+			private String id, password, tipo, nombre, status;
+			//GETTERS SETTERS
+			public void setId(Object id) {
+				this.id = id.toString();
+			}
+			@Override
+			public String getId() {
+				return id;
+			}
+			public String getPassword() {
+				return password;
+			}
+			public void setPassword(String pasword) {
+				this.password = pasword;
+			}
+			public String getTipo() {
+				return tipo;
+			}
+			public void setTipo(String tipo) {
+				this.tipo = tipo;
+			}
+			public String getNombre() {
+				return nombre;
+			}
+			public void setNombre(String nombre) {
+				this.nombre = nombre;
+			}
+			public String getStatus() {
+				return status;
+			}
+			public void setStatus(String status) {
+				this.status = status;
+			}
+			@Override
+			public String sqlConsultar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlInsertar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlActualizar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+			@Override
+			public String sqlEliminar() {
+			// TODO Auto-generated method stub
+				return null;
+			}
+		}
+	}
+	adds{
+		package modelos.obs;
+		public interface Observador{
+			void actualizarObs(Observado desencadenador);
+		}
+	}
+	adds{
+		package modelos.obs;
+		public interface Observado{
+			void registrarObs(Observador obs);
+			void removerObs(Observador obs);
+			void notificarObs();
+		}
+	}
+}

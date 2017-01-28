@@ -1,0 +1,105 @@
+delta dLuces {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		import modelos.commands.EncenderLuz;
+		import modelos.commands.ApagarLuz;
+		public abstract class Luz extends Dispositivo{
+			public Luz(){
+				setCategoria(Constantes.LUZ);
+				setTipoEstado(Constantes.ON_OFF);
+				addFuncion(new EncenderLuz(this));
+				addFuncion(new ApagarLuz(this));
+			}
+			public abstract void encender();
+			public abstract void apagar();
+		}
+	}
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		public abstract class LuzRegulable extends Luz{
+			public LuzRegulable(){
+				setSubcategoria(Constantes.REGULABLE);
+			}
+			public abstract void setIntensidad(int i);
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Luz;
+		public class EncenderLuz extends Funcion{
+			public Luz luz;
+			public EncenderLuz(Luz l){
+				this();
+				luz = l;
+			}
+			public EncenderLuz(){
+				setNombre("encenderLuz");
+				setDescripcion("Encender luz");
+			}
+			public void ejecutar() throws Exception{
+				luz.encender();
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.Luz;
+		public class ApagarLuz extends Funcion{
+			public Luz luz;
+			public ApagarLuz(Luz l){
+				this();
+				luz = l;
+			}
+			public ApagarLuz(){
+				setNombre("apagarLuz");
+				setDescripcion("Apaga la luz");
+			}
+			public void ejecutar() throws Exception{
+				luz.apagar();
+			}
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.LuzRegulable;
+		import intelidomo.estatico.Constantes;
+		public class SetIntensidad extends Funcion{
+			public LuzRegulable luz;
+			public SetIntensidad(LuzRegulable l){
+				this();
+				luz = l;
+				Variable v1 = new Variable(Constantes.ENTERO, "value");
+				agregarArgumento(v1);
+			}
+			public SetIntensidad(){
+				setNombre("setIntensidad");
+			}
+			public void ejecutar() throws Exception{
+				try{
+					int val = Integer.parseInt(getValorDeArgumento("value"));
+					luz.setIntensidad(val);
+				}catch(Exception ex){
+					luz.setIntensidad(1);
+				}
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds public Map<Integer,Luz> mapaLuces = new HashMap<Integer,Luz>();
+		adds private static int luz_count = 1;
+		adds public void registrarLuz(Luz l){
+			l.setId(luz_count);
+			mapaLuces.put(luz_count,l);
+			registrarDispositivo(l);
+			luz_count++;
+		}
+	}
+	modifies modelos.Area{
+		adds public List<Luz> listaLuces = new ArrayList<Luz>();
+		adds public void agregarLuz(Luz l){
+			listaLuces.add(l);
+		}
+	}
+}

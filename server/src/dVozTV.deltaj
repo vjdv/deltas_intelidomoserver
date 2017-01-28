@@ -1,0 +1,56 @@
+delta dVozTV {
+	modifies modelos.Casa{
+		adds import modelos.voz.CanalTvLink;
+		modifies registrarTV(Tele tv){
+			original(tv);
+			Funcion f1 = (Funcion) tv.getFuncion("power");
+			if(f1!=null){
+				voz.addComando("encender television "+tv.getId(),f1);
+				voz.addComando("apagar television "+tv.getId(),f1);
+				voz.addComando("encender televisión "+tv.getId(),f1);
+				voz.addComando("apagar televisión "+tv.getId(),f1);
+				voz.addComando("encender television "+TextCommands.number2str(tv.getId()),f1);
+				voz.addComando("apagar television "+TextCommands.number2str(tv.getId()),f1);
+				voz.addComando("encender televisión "+TextCommands.number2str(tv.getId()),f1);
+				voz.addComando("apagar televisión "+TextCommands.number2str(tv.getId()),f1);
+			}
+			Funcion f2 = (Funcion) tv.getFuncion("setChannel");
+			if(f2!=null){
+				CanalTvLink tvlink = new CanalTvLink(f2);
+				voz.addComando("television "+tv.getId()+" canal",tvlink);
+				voz.addComando("televisión "+tv.getId()+" canal",tvlink);
+				voz.addComando("television "+TextCommands.number2str(tv.getId())+" canal",tvlink);
+				voz.addComando("televisión "+TextCommands.number2str(tv.getId())+" canal",tvlink);
+			}
+		}
+	}
+	adds{
+		package modelos.voz;
+		import java.util.*;
+		import java.util.logging.*;
+		import modelos.commands.Funcion;
+		public class CanalTvLink implements ChainLink{
+			private final Funcion funcion;
+			public CanalTvLink(Funcion f){
+				funcion = f;
+			}
+			@Override
+			public String atender(List<String> words){
+				if(words.size()!=1) return null;
+				String channel = words.iterator().next();
+				try{
+					funcion.setValorDeArgumento("canal",channel);
+					funcion.ejecutar();
+					return "¡Listo!";
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.INFO,"Error ejecutando función",ex);
+					return "Error de ejecución";
+				}
+			}
+			@Override
+			public void addLink(List<String> words, ChainLink node){
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+}

@@ -1,0 +1,31 @@
+delta dDomopiHumedad {
+	adds{
+		package modelos.domopi;
+		import modelos.SensorHumedad;
+		public class HumedadImp extends SensorHumedad{
+			private final char cid;
+			public HumedadImp(Domopi drpi, char id){
+				setControlador(drpi);
+				cid = id;
+			}
+			public char getIdChar(){return cid;}
+		}
+	}
+	modifies modelos.domopi.Domopi{
+		adds Map<Character,HumedadImp> mapa_sh = new HashMap<Character,HumedadImp>();
+		modifies entenderPedazo(String key,String val){
+			if(key.startsWith("HUMD")) {
+				Character id = key.length()>4 ? key.charAt(4) : '0';
+				HumedadImp sh = mapa_sh.get(id);
+				if(sh==null){
+					sh = new HumedadImp(this,id);
+					dispositivos.add(sh);
+					mapa_sh.put(id,sh);
+					casa.registrarSensorHumedad(sh);
+				}
+				sh.setEstado(val);
+			}
+			original(key,val);
+		}
+	}
+}

@@ -1,0 +1,35 @@
+delta dLuzRGB {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		public abstract class LuzRGB extends Luz{
+			public LuzRGB(){
+				setSubcategoria(Constantes.RGB);
+				setTipoEstado(Constantes.CADENA);
+			}
+			public abstract void setColor(String i);
+			public abstract void setColor(int r, int g, int b);
+		}
+	}
+	adds{
+		package modelos.commands;
+		import modelos.LuzRGB;
+		import intelidomo.estatico.Constantes;
+		public class SetColor extends Funcion{
+			public LuzRGB luz;
+			public SetColor(LuzRGB l){
+				luz = l;
+				setNombre("setColor");
+				Variable v1 = new Variable(Constantes.CADENA, "value");
+				agregarArgumento(v1);
+			}
+			public void ejecutar() throws Exception{
+				try{
+					luz.setColor(getValorDeArgumento("value"));
+				}catch(Exception ex){
+					luz.apagar();
+				}
+			}
+		}
+	}
+}

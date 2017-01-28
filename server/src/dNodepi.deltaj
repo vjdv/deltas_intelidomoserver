@@ -1,0 +1,108 @@
+delta dNodepi {
+	adds{
+		package modelos.nodepi;
+		public interface NodepiI{}
+	}
+	adds{
+		package modelos.nodepi;
+		import intelidomo.estatico.Constantes;
+		import modelos.Controlador;
+		import modelos.Dispositivo;
+		import modelos.Casa;
+		import java.io.*;
+		import java.net.*;
+		import java.util.*;
+		import java.util.logging.*;
+		public class NodepiSensors extends Controlador{
+			private List<Dispositivo> dispositivos = new ArrayList<Dispositivo>();
+			private Casa casa = Casa.getInstancia();
+			private int errors = 0;
+			
+			public NodepiSensors(){
+				setTipo("Nodepi Controller");
+			}
+			public void constructor(){
+				conectar();
+			}
+			@Override
+			public void conectar(){
+				Thread t = new Thread(new Updater());
+				t.setDaemon(true);
+				t.start();
+			}
+			private void entenderCadena(String str){
+				str = str.trim();
+				str = str.replaceAll("#","");
+				String pedazos[] = str.split("\\|");
+				if(pedazos.length==0 || pedazos.length%2==1) return;
+				for(int i=0;i<pedazos.length;i+=2){
+					String key = pedazos[i];
+					String val = pedazos[i+1];
+					entenderPedazo(key,val);
+				}
+				if(hayCambios()) notificarObs();
+			}
+			private void entenderPedazo(String key,String val){}
+			public void setIndisponibles(){
+				errors++;
+				for(Dispositivo d : dispositivos) d.setEstado(Constantes.INDISPONIBLE);
+				if(hayCambios()) notificarObs();
+			}
+			public void obtenerValores(){
+				Socket socket;
+				PrintWriter out;
+				BufferedReader in;
+				try{
+					socket = new Socket(getIP(),80);
+					socket.setSoTimeout(30000);
+					out = new PrintWriter(socket.getOutputStream(),true);
+					in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    			}catch(Exception ex){
+    				String params[] = {getIP(),ex.getMessage()};
+    				Logger.getLogger("DomoLog").log(Level.WARNING, "Nodepi: error conexión IP:{0} EX:{1}",params);
+    				setIndisponibles();
+    				return;
+    			}
+    			try{
+					out.print("get values");
+					out.flush();
+					String mensaje = in.readLine();
+					System.out.println(mensaje);
+					entenderCadena(mensaje);
+					in.close();
+					out.close();
+					socket.close();
+					errors = 0;
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING,"Conexión perdida IP {0}", getIP());
+					setIndisponibles();
+				}
+			}
+			public class Updater implements Runnable{
+				@Override
+				public void run(){
+					while(true){
+						obtenerValores();
+						long tiempo = errors>3 ? 60000 : 1000;
+						try{Thread.sleep(tiempo);}catch(Exception ex){System.out.println("INTERRUPTED:"+ex.getMessage());}
+					}
+//					System.out.println("Por alguna razón estoy aquí :(");
+				}
+			}
+		}
+	}
+	modifies db.Gestor{
+		adds import modelos.nodepi.NodepiSensors;
+		modifies despacharControlador(String tipo,ResultSet rs){
+			if(tipo.equals("NodepiSensors")){
+				NodepiSensors dodisp = new NodepiSensors();
+				dodisp.setId(rs.getInt("id_disp"));
+				dodisp.setArea(rs.getInt("id_area"));
+				dodisp.setIP(rs.getString("ip"));
+				dodisp.constructor();
+				return dodisp;
+			}
+			return original(tipo,rs);
+		}
+	}
+}

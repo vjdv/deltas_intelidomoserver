@@ -1,0 +1,165 @@
+delta dVoz {
+	adds{
+		package modelos.voz;
+		import java.util.*;
+		import modelos.commands.Funcion;
+		public class TextCommands{
+			private TextLink raiz = new TextLink();
+			public String parse(String txt){
+				System.out.println("Atendiendo: "+txt);
+				List<String> words = words2list(txt);
+				return raiz.atender(words);
+			}
+			public void addComando(String cmd, Funcion target){
+				List<String> words = words2list(cmd);
+				FuncionLink flink = new FuncionLink(target);
+				raiz.addLink(words,flink);
+				System.out.println("comando agregado: "+cmd);
+			}
+			public void addComando(String cmd, ChainLink target){
+				List<String> words = words2list(cmd);
+				raiz.addLink(words,target);
+				System.out.println("comando agregado: "+cmd);
+			}
+			public List<String> words2list(String txt){
+				String words[] = txt.split(" ");
+				List<String> words_list = new ArrayList<String>();
+				for(String word : words) words_list.add(word);
+				return words_list;
+			}
+			public static String number2str(int num){
+				String nums_txt[] = {"cero","uno","dos","tres","cuatro","cinco","seis","siete","ocho","nueve","diez","once","doce","trece","catorce","quince"};
+				return nums_txt[num];
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds import modelos.voz.TextCommands;
+		adds private final TextCommands voz = new TextCommands();
+		adds public String despacharComandoTexto(String cmd){
+			return voz.parse(cmd);
+		}
+	}
+	modifies server.DispatcherHTTP{
+		modifies despacha(HttpRequest request, Cliente cliente){
+			if(request.uriEquals("POST /text_command.do")){
+				String txt = decode(request.datos_post.get("text"));
+				String respuesta = casa.despacharComandoTexto(txt);
+				Mensaje m = RespuestaFactory.respuestaVoz(respuesta);
+				String content = RespuestaFactory.mensaje2string(m);
+				HttpResponse response = new HttpResponse(200);
+				response.setContentType("text/plain");
+				response.appendContent(content);
+				return response;
+			}else return original(request,cliente);
+		}
+	}
+	modifies server.RespuestaFactory{
+		adds public static Mensaje respuestaVoz(String str){
+			Mensaje m = new Mensaje();
+			m.accion = Mensaje.COMANDO_VOZ;
+			m.cmdln = new ComandoLN();
+			if(str==null){
+				m.tipo = Mensaje.UNKNOWN;
+				m.cmdln.texto = "Comando desconocido";
+			}else{
+				m.tipo = Mensaje.EXITO;
+				m.cmdln.texto = str;
+			}
+			return m;
+		}
+	}
+	adds{
+		package modelos.voz;
+		import java.util.List;
+		public interface ChainLink{
+			String atender(List<String> words);
+			void addLink(List<String> words, ChainLink node);
+		}
+	}
+	adds{
+		package modelos.voz;
+		import java.util.*;
+		public class TextLink implements ChainLink{
+			private Map<String,ChainLink> map = new HashMap<String,ChainLink>();
+			@Override
+			public String atender(List<String> words){
+				String word = words.iterator().next();
+				if(map.containsKey(word)){
+					words.remove(word);
+					return map.get(word).atender(words);
+				}else return null;
+			}
+			@Override
+			public void addLink(List<String> words, ChainLink node){
+				String word = words.iterator().next();
+				if(map.containsKey(word) && words.size()>1){
+					ChainLink link = map.get(word);
+					words.remove(word);
+					link.addLink(words, node);
+				}else if(!map.containsKey(word) && words.size() > 1){
+					TextLink link = new TextLink();
+					words.remove(word);
+					map.put(word, link);
+					link.addLink(words, node);
+				}else if(!map.containsKey(word) && words.size()==1){
+					map.put(word,node);
+				}else System.out.println("CAMINO INVALIDO!");
+			}
+		}
+	}
+	adds{
+		package modelos.voz;
+		import java.util.*;
+		import java.util.logging.*;
+		import modelos.commands.Funcion;
+		public class FuncionLink implements ChainLink{
+			private final Funcion funcion;
+			public FuncionLink(Funcion f){
+				funcion = f;
+			}
+			@Override
+			public String atender(List<String> words){
+				try{
+					funcion.ejecutar();
+					return "¡Listo!";
+				}catch(Exception ex){
+					Logger.getLogger("DomoLog").log(Level.INFO,"Error ejecutando función",ex);
+					return null;
+				}
+			}
+			@Override
+			public void addLink(List<String> words, ChainLink node){
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+//	adds{
+//		package temporal;
+//		import modelos.voz.TextCommands;
+//		public class PruebaVoz{
+//			public static void main(String args[]){
+//				TextCommands parser = new TextCommands();
+//				FuncionPrueba f1 = new FuncionPrueba();
+//				parser.addComando("encender luz 1",f1);
+//				parser.parse("encender luz 1");
+//			}
+//		}
+//	}
+//	adds{
+//		package temporal;
+//		import modelos.commands.Funcion;
+//		public class FuncionPrueba extends Funcion {
+//			private static int count = 1;
+//			private final int id;
+//			FuncionPrueba(){
+//				id = count;
+//				count++;
+//			}
+//			@Override
+//			public void ejecutar() throws Exception {
+//				System.out.println("Funcion ejecutada #"+id);
+//			}
+//		}
+//	}
+}

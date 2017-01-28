@@ -1,0 +1,231 @@
+delta dDatabase {
+	adds{
+		package db;
+		public interface Persistente{
+			void setId(Object id);
+  			Object getId();
+  			String sqlConsultar();
+  			String sqlInsertar();
+  			String sqlActualizar();
+  			String sqlEliminar();
+		}
+	}
+	adds{
+		package db;
+		
+		import java.sql.*;
+		import java.util.ArrayList;
+		import java.util.logging.*;
+		
+		public class ConexionDB {
+			
+			public Connection conn = null;
+			private String server = "localhost";
+			private String db = "nodefined";
+			private String user = "postgres";
+			private String pass = "postgres";
+			private Exception last_exception = null;
+			
+			public ConexionDB() {
+			}
+			public ConexionDB(String s, String d, String u, String p) {
+				this(d, u, p);
+				server = s;
+			}
+			public ConexionDB(String d, String u, String p) {
+				db = d;
+				user = u;
+				pass = p;
+			}
+			public boolean conectar(){
+				return true;
+			}
+			public synchronized int ejecutarComando(String psStatement){
+				int ret = 0;
+				try {
+					Statement stmt = conn.createStatement();
+					ret = stmt.executeUpdate(psStatement);
+				}
+				catch(Exception ex) {
+					last_exception = ex;
+					System.err.println(ex);
+					return -1;
+				}
+				return ret;
+			}
+			public synchronized int ejecutarComando(ArrayList<String> pvStatement) {
+				return ejecutarComando(pvStatement.toArray(new String[pvStatement.size()]));
+			}
+			public synchronized int ejecutarComando(String statements []) {
+				int ret = 0;
+				try {
+					conn.setAutoCommit(false);
+					for(String x : statements) {
+						int r = ejecutarComando(x);
+						if(r==-1) throw new SQLException("Error en uno de los statement de la transacción");
+					}
+					conn.commit();
+					conn.setAutoCommit(true);
+				}
+				catch(SQLException e) {
+					try{
+						conn.rollback();
+					}catch(SQLException ex){
+						System.err.println("Error al hacer rollback");
+						System.err.println(ex);
+					}
+					return -1;
+				}
+				return ret;
+			}
+			public boolean insertarObjeto(Persistente p) {
+				return insertarObjeto(p, false);
+			}
+			public boolean insertarObjeto(Persistente p, boolean setid) {
+				try {
+					PreparedStatement ps = conn.prepareStatement(p.sqlInsertar(),Statement.RETURN_GENERATED_KEYS);
+					ps.executeUpdate();
+					ResultSet rs = ps.getGeneratedKeys();
+					if(setid == true) {
+						if(rs.next()) p.setId(rs.getObject(1));
+						else return false;
+					}
+				}
+				catch(Exception ex) {
+					last_exception = ex;
+					System.err.println("Error al insertar a persistente " + p + " autosetid="+ setid);
+					System.err.println(ex.toString());
+					return false;
+				}
+				return true;
+			}
+			public boolean actualizarObjeto(Persistente p) {
+				try {
+					ejecutarComando(p.sqlActualizar());
+				}
+				catch(Exception ex) {
+					last_exception = ex;
+					System.err.println("Error al actualizar persistente");
+					System.err.println(ex);
+					return false;
+				}
+				return true;
+			}
+			public boolean eliminarObjeto(Persistente p) {
+				try {
+					ejecutarComando(p.sqlEliminar());
+				}
+				catch(Exception ex) {
+					last_exception = ex;
+					System.err.println("Error al eliminar persistente");
+					System.err.println(ex);
+					return false;
+				}
+				return true;
+			}
+			public boolean isConnected(){
+	    		try {
+	    			if(conn != null) if(conn.isValid(0)) return true;
+    			}catch(SQLException ex) {
+	    			return false;
+    			}
+    			return false;
+    		}
+			public void setServer(String s){server = s;}
+			public String getServer(){return server;}
+			public void setDb(String d){db = d;}
+			public String getDb(){return db;}
+			public void setUser(String u){user = u;}
+			public String getUser(){return user;}
+			public void setPassword(String p){pass = p;}
+			public String getPassword(){return pass;}
+			public void setLastException(Exception ex){last_exception = ex;}
+			public Exception getLastException(){return last_exception;}
+		}
+	}
+	adds{
+		package db;
+		import java.util.logging.*;
+		import java.util.*;
+		import java.sql.*;
+		public class Gestor extends ConexionDB{
+			private static Gestor singleton;
+			public Gestor(){
+//				super("intelidomo","postgres","M5Ec2v2pUViMPoP");
+				super("192.168.1.100", "intelidomo", "postgres", "5sfLCwh.ScXf_6RpV3/f0");
+			}
+			public static Gestor getSingleton(){return singleton;}
+			public static void setSingleton(Gestor g){singleton = g;}
+		}
+	}
+	modifies db.Gestor{
+		adds import modelos.Area;
+		adds import modelos.Controlador;
+		adds import modelos.Usuario;
+		adds public Usuario obtenerUsuarioLogeado(String u,String p){
+			try{
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery("SELECT * FROM usuarios WHERE id_usuario = '"+u+"';");
+				if(rs.next()){
+					Usuario user = new Usuario();
+					user.setId(rs.getString("id_usuario"));
+					user.setPassword(rs.getString("password"));
+					user.setTipo(rs.getString("tipo_usuario"));
+					user.setNombre(rs.getString("nombre"));
+					user.setStatus(rs.getString("status"));
+					if(user.getPassword().equals(p)) return user;
+				}
+			}catch(Exception ex){
+				Logger.getLogger("DomoLog").log(Level.WARNING,"Error usuario",ex);
+			}
+			return null;
+		}
+		adds public Area[] getAreasByQuery(String q) {
+			ArrayList<Area> la = new ArrayList<Area>();
+			try {
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery(q);
+				while(rs.next()) {
+					Area a = new Area();
+					a.setId(rs.getInt("id_area"));
+					a.setTipo(rs.getString("tipo_area"));
+					a.setNombre(rs.getString("nombre"));
+					la.add(a);
+				}
+			}
+			catch(Exception ex) {
+				Logger.getLogger("DomoLog").log(Level.WARNING,"Error al obtener areas con consulta: " + q,ex);
+				return null;
+			}
+			return la.toArray(new Area[la.size()]);
+		}
+		adds public Area[] getListaAreas(){
+			return getAreasByQuery("SELECT * FROM areas ORDER BY nombre");
+		}
+		adds public Controlador[] getControladoresByQuery(String q) {
+			ArrayList<Controlador> ld = new ArrayList<Controlador>();
+			try {
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery(q);
+				while(rs.next()) {
+					String tipo = rs.getString("tipo_disp");
+					Controlador d = despacharControlador(tipo,rs);
+					if(d!=null) ld.add(d);
+				}
+			}
+			catch(Exception ex) {
+				Logger.getLogger("DomoLog").log(Level.WARNING,"Error al obtener dispositivos con consulta: " + q,ex);
+				return null;
+			}
+			return ld.toArray(new Controlador[ld.size()]);
+		}
+		adds public Controlador[] getListaControladores(){
+			return getControladoresByQuery("SELECT * FROM dispositivos ORDER BY ip");
+		}
+		adds private Controlador despacharControlador(final String tipo,final ResultSet rs) throws SQLException{
+			if(tipo==null || rs==null) return null;
+			Logger.getLogger("DomoLog").log(Level.INFO,"No se conoce dispositivo tipo: "+tipo);
+			return null;
+		}
+	}
+}

@@ -1,0 +1,25 @@
+delta dNodepiHumedad {
+	adds{
+		package modelos.nodepi;
+		import modelos.SensorHumedad;
+		public class HumedadImp extends SensorHumedad{
+			public HumedadImp(NodepiSensors ctr){
+				setControlador(ctr);
+			}
+		}
+	}
+	modifies modelos.nodepi.NodepiSensors{
+		adds HumedadImp humd;
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("humd")) {
+				if(humd==null){
+					humd = new HumedadImp(this);
+					dispositivos.add(humd);
+					casa.registrarSensorHumedad(humd);
+				}
+				humd.setEstado(val);
+			}
+			original(key,val);
+		}
+	}
+}

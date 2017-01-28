@@ -1,0 +1,13 @@
+delta dVozCortina {
+	modifies modelos.Casa{
+		modifies registrarCortina(Cortina c){
+			original(c);
+			Funcion f1 = (Funcion) c.getFuncion("open");
+			Funcion f2 = (Funcion) c.getFuncion("close");
+			voz.addComando("abrir cortina "+c.getId(),f1);
+			voz.addComando("cerrar cortina "+c.getId(),f2);
+			voz.addComando("abrir cortina "+TextCommands.number2str(c.getId()),f1);
+			voz.addComando("cerrar cortina "+TextCommands.number2str(c.getId()),f2);
+		}
+	}
+}

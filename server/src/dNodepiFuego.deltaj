@@ -1,0 +1,27 @@
+delta dNodepiFuego {
+	adds{
+		package modelos.nodepi;
+		import intelidomo.estatico.Constantes;
+		import modelos.Alarma;
+		public class FuegoImp extends Alarma{
+			public FuegoImp(NodepiSensors ctr){
+				setControlador(ctr);
+				setSubcategoria(Constantes.FUEGO);
+			}
+		}
+	}
+	modifies modelos.nodepi.NodepiSensors{
+		adds FuegoImp fire;
+		modifies entenderPedazo(String key,String val){
+			if(key.equals("flama")) {
+				if(fire==null){
+					fire = new FuegoImp(this);
+					dispositivos.add(fire);
+					casa.registrarAlarma(fire);
+				}
+				fire.hay(val.equals("1"));
+			}
+			original(key,val);
+		}
+	}
+}

@@ -1,0 +1,29 @@
+delta dPgsql {
+	modifies db.ConexionDB {
+		modifies conectar() {
+			if(isConnected()) return true;
+			try {
+				if(conn != null) if(conn.isValid(0)) return true;
+				Class.forName("org.postgresql.Driver").newInstance();
+				conn = DriverManager.getConnection("jdbc:postgresql://" + server + "/" +db, user, pass);
+				Logger.getLogger("DomoLog").log(Level.FINE, "Conexión PostgreSQL creada en " + this.toString());
+				return true;
+			}
+			catch(SQLException ex){
+				last_exception = ex;
+				Logger.getLogger("DomoLog").log(Level.SEVERE, "", ex);
+			}
+			catch(ClassNotFoundException ex){
+				last_exception = ex;
+				Logger.getLogger("DomoLog").log(Level.SEVERE, "No se encontró la clase del driver Postgresql", ex);
+			}catch(InstantiationException ex){
+				last_exception = ex;
+				Logger.getLogger("DomoLog").log(Level.SEVERE, "No se pudo instanciar el driver Postgresql", ex);
+			}catch(IllegalAccessException ex){
+				last_exception = ex;
+				Logger.getLogger("DomoLog").log(Level.SEVERE, "", ex);
+			}
+			return false;
+		}
+	}
+}

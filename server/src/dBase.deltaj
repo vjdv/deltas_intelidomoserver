@@ -1,0 +1,98 @@
+delta dBase {
+	adds{
+		package aplicacion;
+		import db.Gestor;
+		import modelos.Casa;
+		public class Inicio{
+			public Inicio(){
+				constructor();
+			}
+			public void constructor(){
+				System.out.println("--- Iniciando Sistema Domótico v1.3 RUN_ID = "+Config.RUN_ID+" ---");
+				Config.cargarValores();
+				Bitacora.setMinLevel(Bitacora.MESSAGES);
+				Gestor g = new Gestor();
+				boolean exito = g.conectar();
+				if(exito==false){
+					Bitacora.error("Hubo un problema al conectar a la base de datos, el servicio no se puede iniciar.");
+					System.exit(0);
+				}
+				Gestor.setSingleton(g);
+				Casa.getInstancia().constructor();
+			}
+			public static void main(String args[]){
+				new Inicio();
+			}
+		}
+	}
+	adds{
+		package aplicacion;
+		public class Config{
+			public static final long RUN_ID = System.currentTimeMillis();
+			public static int PUERTO_TCP_SERVER = 4490;
+			public static int PUERTO_SSL_SERVER = 4491;
+			public static int PUERTO_HTTP_SERVER = 4480;
+			public static int PUERTO_HTTPS_SERVER = 4481;
+			public static String LOG_DIR = "/var/";
+			public static int LOG_LEVEL = 2;
+			public static void cargarValores(){
+				
+			}
+		}
+	}
+	adds{
+		package aplicacion;
+		import java.util.logging.*;
+		import java.io.IOException;
+		public class Bitacora{
+			public final static int ALL = 0, ALMOST_ALL = 1, MESSAGES = 2, NOTICES = 3, WARNINGS = 4, ERRORS = 5;
+			private static int min_level = 2;  
+			static Logger logger = Logger.getLogger("DomoLog");
+			static{
+				setMinLevel(Config.LOG_LEVEL);
+				try {
+					FileHandler fh = new FileHandler(Config.LOG_DIR + "domo_" + Config.RUN_ID + ".txt");
+					logger.addHandler(fh);
+					SimpleFormatter formatter = new SimpleFormatter();
+					fh.setFormatter(formatter);
+				}catch(IOException ex){
+					System.err.println("Bitácora: No fue posible crear archivo log");
+					System.err.println(ex);
+				}catch(SecurityException ex){
+					System.err.println("Bitácora: Problemas de seguridad");
+					System.err.println(ex);
+				}
+			}
+			public static void setMinLevel(int level){
+				if(min_level!=level){
+					min_level = level;
+					if(level==ALL) logger.setLevel(Level.ALL);
+					if(level==ALMOST_ALL) logger.setLevel(Level.FINER);
+					if(level==MESSAGES) logger.setLevel(Level.FINE);
+					else if(level==NOTICES) logger.setLevel(Level.INFO);
+					else if(level==WARNINGS) logger.setLevel(Level.WARNING);
+					else if(level==ERRORS) logger.setLevel(Level.SEVERE);
+					logger.warning("Log Level cambiado a " + level);
+				}
+			}
+			public static void trace(String txt){
+				logger.finest(txt);
+			}
+			public static void ok(String txt){
+				logger.finer(txt);
+			}
+			public static void message(String txt){
+				logger.fine(txt);
+			}
+			public static void notice(String txt){
+				logger.info(txt);
+			}
+			public static void warning(String txt){
+				logger.warning(txt);
+			}
+			public static void error(String txt){
+				logger.severe(txt);
+			}
+		}
+	}
+}

@@ -1,0 +1,13 @@
+delta dVozLuces {
+	modifies modelos.Casa{
+		modifies registrarLuz(Luz l){
+			original(l);
+			Funcion f1 = (Funcion) l.getFuncion("encenderLuz");
+			Funcion f2 = (Funcion) l.getFuncion("apagarLuz");
+			voz.addComando("encender luz "+l.getId(),f1);
+			voz.addComando("apagar luz "+l.getId(),f2);
+			voz.addComando("encender luz "+TextCommands.number2str(l.getId()),f1);
+			voz.addComando("apagar luz "+TextCommands.number2str(l.getId()),f2);
+		}
+	}
+}

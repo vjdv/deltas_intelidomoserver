@@ -1,0 +1,130 @@
+delta dNodepiCortina {
+	adds{
+		package modelos.nodepi;
+		import modelos.Controlador;
+		import modelos.Casa;
+		import java.io.*;
+		import java.net.*;
+		import java.util.logging.*;
+		import intelidomo.estatico.Constantes;
+		public class CortinaController extends Controlador{
+			private Casa casa = Casa.getInstancia();
+			private CortinaImp cortina;
+			
+			public CortinaController(){
+				setTipo("Cortina Controller");
+			}
+			public void constructor(){
+				cortina = new CortinaImp(this);
+				casa.registrarCortina(cortina);
+			}
+			@Override
+			public void conectar(){
+				throw new UnsupportedOperationException();
+			}
+			public void interpretar(String msg){
+				if(msg==null || msg.isEmpty())return;
+				msg = msg.replaceAll("#","");
+				String partes[] = msg.split("\\|");
+				if(partes[0].equals("position")){
+					cortina.setEstado(partes[1]);
+					cortina.lastUpdate = System.currentTimeMillis();
+				}
+				if(hayCambios()) notificarObs();
+				//System.out.println("Recibido: "+partes[0]+"#"+partes[1]);
+			}
+			public void enviarComando(String cmd){
+				Socket socket;
+				PrintWriter out;
+				BufferedReader in;
+				try{
+					socket = new Socket(getIP(),80);
+					out = new PrintWriter(socket.getOutputStream(),true);
+					in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    			}catch(Exception ex){
+    				String params[] = {getIP(),ex.getMessage()};
+    				Logger.getLogger("DomoLog").log(Level.WARNING, "Error conexión con cortina IP:{0} EX:{1}",params);
+    				cortina.setEstado(Constantes.INDISPONIBLE);
+    				if(hayCambios()) notificarObs();
+    				return;
+    			}
+    			try{
+					out.print(cmd);
+					out.flush();
+					String mensaje;
+					while((mensaje = in.readLine()) != null) {
+						interpretar(mensaje);
+					}
+					in.close();
+					out.close();
+					socket.close();
+				}catch(IOException ex){
+					Logger.getLogger("DomoLog").log(Level.SEVERE,"Conexión perdida IP {0}", getIP());
+					cortina.setEstado(Constantes.INDISPONIBLE);
+				}
+				if(hayCambios()) notificarObs();
+			}
+		}
+	}
+	adds{
+		package modelos.nodepi;
+		import modelos.Cortina;
+		import java.util.logging.*;
+		public class CortinaImp extends Cortina{
+			private final CortinaController padre;
+			public long lastUpdate = 0;
+			public CortinaImp(CortinaController ctr){
+				setControlador(ctr);
+				padre = ctr;
+				Thread t = new Thread(new Updater());
+				t.setDaemon(true);
+				t.start();
+			}
+			@Override
+			public void triggerEstado(String edo){
+				setPosicion(edo);
+			}
+			@Override
+			public void setPosicion(String pos){
+				try{
+					int pos_int = Integer.parseInt(pos);
+					padre.enviarComando("set position "+pos_int);
+				}catch(NumberFormatException ex){
+					Logger.getLogger("DomoLog").log(Level.WARNING, "Posición no válida: {0}",pos);
+				}
+			}
+			@Override
+			public void abrir() {
+				padre.enviarComando("set position 0");
+			}
+			@Override
+			public void cerrar() {
+				padre.enviarComando("set position 100");
+			}
+			public class Updater implements Runnable{
+				@Override
+				public void run(){
+					while(true){
+						long now = System.currentTimeMillis();
+						if((now-lastUpdate)>150000) padre.enviarComando("get position");
+						try{Thread.sleep(15000);}catch(InterruptedException ex){System.out.println("INTERRUPTED");}
+					}
+				}
+			}
+		}
+	}
+	modifies db.Gestor{
+		adds import modelos.nodepi.CortinaController;
+		modifies despacharControlador(String tipo,ResultSet rs){
+			if(tipo.equals("NodepiCortina")){
+				CortinaController controller = new CortinaController();
+				controller.setId(rs.getInt("id_disp"));
+				controller.setArea(rs.getInt("id_area"));
+				controller.setIP(rs.getString("ip"));
+				controller.constructor();
+				return controller;
+			}
+			return original(tipo,rs);
+		}
+	}
+}

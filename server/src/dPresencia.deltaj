@@ -1,0 +1,37 @@
+delta dPresencia {
+	adds{
+		package modelos;
+		import intelidomo.estatico.Constantes;
+		public abstract class SensorPresencia extends Dispositivo{
+			public SensorPresencia(){
+				super(false);
+				setCategoria(Constantes.SENSOR_PRESENCIA);
+				setTipoEstado(Constantes.YES_NO);
+				setEstadoSoloLectura(true);
+			}
+			public boolean hayPresencia(){
+				return getEstado().equals(Constantes.YES);
+			}
+			@Override
+			public void triggerEstado(String edo) {
+				throw new UnsupportedOperationException();
+			}
+		}
+	}
+	modifies modelos.Casa{
+		adds public Map<Integer,SensorPresencia> mapaPir = new HashMap<Integer,SensorPresencia>();
+		adds private static int pir_count = 1;
+		adds public void registrarSensorPresencia(SensorPresencia pir){
+			pir.setId(pir_count);
+			mapaPir.put(pir_count,pir);
+			registrarDispositivo(pir);
+			pir_count++;
+		}
+	}
+	modifies modelos.Area{
+		adds public List<SensorPresencia> listaPir = new ArrayList<SensorPresencia>();
+		adds public void agregarSensorPresencia(SensorPresencia pir){
+			listaPir.add(pir);
+		}
+	}
+}
